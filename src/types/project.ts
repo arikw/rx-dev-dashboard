@@ -32,6 +32,8 @@ export type Project = {
   updatedAt?: string;
   /** Year for manual entries that don't have a source-side updated date. */
   year?: number;
+  /** Optional thumbnail/image URL. When absent, the card renders a generated SVG fallback. */
+  image?: string;
   featured: boolean;
   /** Whether a matching MDX file in src/content/projects/ produces a detail page. */
   hasDetail: boolean;

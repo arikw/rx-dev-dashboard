@@ -1,0 +1,74 @@
+---
+import type { Project } from '../types/project';
+
+interface Props {
+  project: Project;
+}
+const { project: p } = Astro.props;
+
+// Deterministic hue from slug — same project always gets the same color.
+function hashHue(seed: string): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h * 31 + seed.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h) % 360;
+}
+
+const SOURCE_GLYPH: Record<Project['source'], string> = {
+  github: 'GH',
+  npm: 'np',
+  docker: 'dh',
+  chrome: 'cx',
+  manual: '·',
+};
+
+const hue = hashHue(p.id);
+const bgA = `hsl(${hue}, 38%, 22%)`;
+const bgB = `hsl(${(hue + 40) % 360}, 36%, 14%)`;
+const fg = `hsl(${hue}, 60%, 84%)`;
+
+// Title shown in the thumb — initials when long, full title when short.
+const shortTitle =
+  p.title.length <= 18
+    ? p.title
+    : p.title
+        .replace(/[-_]/g, ' ')
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((w) => w[0])
+        .slice(0, 3)
+        .join('')
+        .toUpperCase();
+---
+<div class="thumb" aria-hidden="true">
+  {p.image ? (
+    <img class="thumb-img" src={p.image} alt="" loading="lazy" />
+  ) : (
+    <svg class="thumb-svg" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" role="img" aria-hidden="true">
+      <defs>
+        <linearGradient id={`thumb-grad-${p.id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color={bgA} />
+          <stop offset="1" stop-color={bgB} />
+        </linearGradient>
+      </defs>
+      <rect width="320" height="180" fill={`url(#thumb-grad-${p.id})`} />
+      <text
+        x="20"
+        y="100"
+        font-family="ui-sans-serif, system-ui, sans-serif"
+        font-size="34"
+        font-weight="600"
+        fill={fg}
+      >{shortTitle}</text>
+      <text
+        x="20"
+        y="158"
+        font-family="ui-monospace, monospace"
+        font-size="13"
+        fill={fg}
+        opacity="0.7"
+      >{SOURCE_GLYPH[p.source]} · {p.source}</text>
+    </svg>
+  )}
+</div>

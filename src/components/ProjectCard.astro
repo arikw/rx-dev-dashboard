@@ -1,6 +1,7 @@
 ---
 import type { Project } from '../types/project';
 import { formatStat } from '../lib/aggregate-stats';
+import ProjectThumb from './ProjectThumb.astro';
 
 interface Props {
   project: Project;
@@ -21,6 +22,7 @@ if (p.stats.rating !== undefined && p.stats.ratingCount) {
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
 ---
 <article class={`card card--${size}`} data-tags={p.tags.join(',')} data-source={p.source}>
+  <ProjectThumb project={p} />
   <header class="card-head">
     <a class="card-title" href={p.url} rel="noopener" target="_blank">
       <h3>{p.title}</h3>
