@@ -7,6 +7,12 @@ export type ManualProject = {
   year?: number;
   featured?: boolean;
   language?: string;
+  /** Project type. Free-form but `app | library | package | cli | extension | mobile | image | other` are recognized. */
+  kind?: string;
+  /** True/false explicitly. When omitted, `sourceUrl` presence implies `true`. */
+  openSource?: boolean;
+  /** Canonical source-repo URL. */
+  sourceUrl?: string;
 };
 
 export type GithubSourceConfig = {
@@ -70,6 +76,15 @@ export type ProjectsConfig = {
     npm: NpmSourceConfig;
     docker: DockerSourceConfig;
     chrome: ChromeSourceConfig;
+  };
+  /** Tag filter behaviour. */
+  tags?: {
+    /** Max chips shown before the "More tags" toggle (default 8). */
+    topN?: number;
+    /** Hide tags used by fewer than this many projects (default 1). */
+    minCount?: number;
+    /** Tag names to exclude entirely (case-insensitive). */
+    exclude?: string[];
   };
   /** Project slugs to pin at the top of the page. */
   featured: string[];

@@ -54,6 +54,9 @@ export const fetchDockerProjects: Connector = async (config, options) => {
       dockerStars: r.star_count,
     },
     updatedAt: r.last_updated,
+    kind: 'image',
+    // openSource is set by the cross-source pass in load-projects when a
+    // matching github repo of the same name exists.
     featured: false,
     hasDetail: false,
   }));

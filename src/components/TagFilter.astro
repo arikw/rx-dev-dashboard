@@ -1,9 +1,15 @@
 ---
+interface TagEntry {
+  name: string;
+  count: number;
+}
 interface Props {
-  tags: { name: string; count: number }[];
+  primary: TagEntry[];
+  overflow: TagEntry[];
   totalCount: number;
 }
-const { tags, totalCount } = Astro.props;
+const { primary, overflow, totalCount } = Astro.props;
+const hasOverflow = overflow.length > 0;
 ---
 <div class="tag-filter" role="group" aria-label="Filter projects by tag">
   <button
@@ -14,7 +20,7 @@ const { tags, totalCount } = Astro.props;
   >
     All <span class="tag-count">{totalCount}</span>
   </button>
-  {tags.map(({ name, count }) => (
+  {primary.map(({ name, count }) => (
     <button
       type="button"
       class="tag-chip"
@@ -24,4 +30,48 @@ const { tags, totalCount } = Astro.props;
       {name} <span class="tag-count">{count}</span>
     </button>
   ))}
+  {hasOverflow && (
+    <>
+      {overflow.map(({ name, count }) => (
+        <button
+          type="button"
+          class="tag-chip tag-chip--overflow"
+          data-tag-filter={name}
+          aria-pressed="false"
+          hidden
+        >
+          {name} <span class="tag-count">{count}</span>
+        </button>
+      ))}
+      <button
+        type="button"
+        class="tag-chip tag-chip-toggle"
+        data-tag-toggle
+        aria-expanded="false"
+        data-overflow-count={overflow.length}
+      >
+        + {overflow.length} more
+      </button>
+    </>
+  )}
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const filter = document.querySelector<HTMLElement>('.tag-filter');
+    if (!filter) return;
+    const toggle = filter.querySelector<HTMLButtonElement>('[data-tag-toggle]');
+    if (!toggle) return;
+    const overflowChips = filter.querySelectorAll<HTMLButtonElement>('.tag-chip--overflow');
+    const count = parseInt(toggle.dataset.overflowCount ?? '0', 10);
+    toggle.addEventListener('click', () => {
+      const expanded = toggle.getAttribute('aria-expanded') === 'true';
+      const next = !expanded;
+      toggle.setAttribute('aria-expanded', String(next));
+      toggle.textContent = next ? 'Fewer tags' : `+ ${count} more`;
+      overflowChips.forEach((c) => {
+        if (next) c.removeAttribute('hidden');
+        else c.setAttribute('hidden', '');
+      });
+    });
+  });
+</script>

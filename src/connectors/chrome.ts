@@ -27,8 +27,7 @@ async function scrapeOne(id: string): Promise<ChromeExtension | null> {
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent':
-          'Mozilla/5.0 (X11; Linux x86_64) rx-dev-dashboard/0.1 (+https://wzmn.net/projects/)',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) rx-dev-dashboard/0.1',
         'Accept-Language': 'en-US,en;q=0.9',
       },
     });
@@ -115,6 +114,9 @@ export const fetchChromeProjects: Connector = async (config, options) => {
       rating: ext.rating,
       ratingCount: ext.ratingCount,
     },
+    kind: 'extension',
+    // openSource is set by the cross-source pass when a matching github
+    // repo (by normalized name/title) exists.
     featured: false,
     hasDetail: false,
   }));

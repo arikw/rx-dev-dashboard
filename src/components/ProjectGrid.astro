@@ -2,6 +2,7 @@
 import ProjectCard from './ProjectCard.astro';
 import TagFilter from './TagFilter.astro';
 import type { Project } from '../types/project';
+import config from '../lib/load-config';
 
 interface Props {
   projects: Project[];
@@ -9,13 +10,25 @@ interface Props {
 }
 const { projects, pageSize } = Astro.props;
 
+const tagsCfg = config.tags ?? {};
+const topN = tagsCfg.topN ?? 8;
+const minCount = tagsCfg.minCount ?? 2;
+const excludeSet = new Set((tagsCfg.exclude ?? []).map((s) => s.toLowerCase()));
+
 const tagCounts = new Map<string, number>();
 for (const p of projects) {
-  for (const t of p.tags) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+  for (const t of p.tags) {
+    if (excludeSet.has(t.toLowerCase())) continue;
+    tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+  }
 }
 const sortedTags = Array.from(tagCounts.entries())
+  .filter(([, count]) => count >= minCount)
   .map(([name, count]) => ({ name, count }))
   .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+const primaryTags = sortedTags.slice(0, topN);
+const overflowTags = sortedTags.slice(topN);
 ---
 <section class="projects" data-page-size={pageSize}>
   <header class="section-head">
@@ -24,7 +37,13 @@ const sortedTags = Array.from(tagCounts.entries())
     <span class="section-count">{String(projects.length).padStart(2, '0')}</span>
   </header>
 
-  {sortedTags.length > 0 && <TagFilter tags={sortedTags} totalCount={projects.length} />}
+  {sortedTags.length > 0 && (
+    <TagFilter
+      primary={primaryTags}
+      overflow={overflowTags}
+      totalCount={projects.length}
+    />
+  )}
 
   <div class="projects-grid">
     {projects.map((p) => <ProjectCard project={p} />)}

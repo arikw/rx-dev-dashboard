@@ -87,6 +87,8 @@ export const fetchNpmProjects: Connector = async (config, options) => {
       downloadsLastYear: lastYear,
     },
     updatedAt: entry.package.date,
+    kind: 'package',
+    openSource: true, // public npm packages are effectively always open-source distributions
     featured: false,
     hasDetail: false,
   }));

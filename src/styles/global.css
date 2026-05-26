@@ -393,6 +393,53 @@ button {
   font-feature-settings: 'tnum';
 }
 
+.tag-chip-toggle {
+  font-style: italic;
+  color: var(--muted);
+}
+
+.tag-chip-toggle:hover {
+  color: var(--accent);
+}
+
+.tag-chip--overflow[hidden] {
+  display: none;
+}
+
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.card-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: transparent;
+  text-decoration: none;
+}
+
+.card-badge--kind {
+  text-transform: lowercase;
+}
+
+.card-badge--oss {
+  border-color: hsla(140, 35%, 50%, 0.4);
+  color: hsl(140, 40%, 65%);
+}
+
+.card-badge--oss:hover {
+  border-color: hsl(140, 45%, 55%);
+  color: hsl(140, 55%, 75%);
+}
+
 .projects-empty {
   text-align: center;
   padding: 48px 0;

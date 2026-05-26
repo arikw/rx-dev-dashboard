@@ -78,6 +78,46 @@ async function runConnector(
   }
 }
 
+/**
+ * Strip source prefix and owner namespace so projects from different sources
+ * sharing the same human-friendly name collapse to a single match key.
+ *
+ * - github "foo-bar"        → "foo-bar"
+ * - npm    "npm:foo-bar"    → "foo-bar"
+ * - npm    "npm:@scope/foo" → "foo"
+ * - docker "docker:user/foo"→ "foo"
+ * - chrome titles are used directly (extension slugs aren't human-readable)
+ */
+function matchKey(p: Project): string {
+  const lower = (s: string) => s.toLowerCase().trim();
+  if (p.source === 'github') return lower(p.id);
+  if (p.source === 'npm') {
+    const name = p.id.replace(/^npm:/, '');
+    return lower(name.includes('/') ? name.split('/').pop()! : name);
+  }
+  if (p.source === 'docker') {
+    const name = p.id.replace(/^docker:/, '');
+    return lower(name.includes('/') ? name.split('/').pop()! : name);
+  }
+  if (p.source === 'chrome') {
+    return lower(p.title).replace(/\s+/g, '-');
+  }
+  return lower(p.id);
+}
+
+function applyCrossSourceOpenSource(projects: Project[]): Project[] {
+  const githubByKey = new Map<string, Project>();
+  for (const p of projects) {
+    if (p.source === 'github') githubByKey.set(matchKey(p), p);
+  }
+  return projects.map((p) => {
+    if (p.source === 'github' || p.openSource) return p;
+    const match = githubByKey.get(matchKey(p));
+    if (!match) return p;
+    return { ...p, openSource: true, sourceUrl: p.sourceUrl ?? match.url };
+  });
+}
+
 async function loadOnce(): Promise<Project[]> {
   const enabled: ConnectorRun[] = CONNECTORS.map((c) => ({
     ...c,
@@ -111,11 +151,13 @@ async function loadOnce(): Promise<Project[]> {
 
   const featuredSlugs = new Set(config.featured);
 
-  return Array.from(byId.values()).map((p) => ({
+  const merged = Array.from(byId.values()).map((p) => ({
     ...p,
     featured: p.featured || featuredSlugs.has(p.id),
     hasDetail: detailSlugs.has(p.id),
   }));
+
+  return applyCrossSourceOpenSource(merged);
 }
 
 export function loadProjects(): Promise<Project[]> {

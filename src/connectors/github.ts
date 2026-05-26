@@ -1,6 +1,35 @@
 import type { Connector } from './types';
-import type { Project } from '../types/project';
+import type { Project, ProjectKind } from '../types/project';
 import { loadFixture, isPlaceholderHandle } from '../lib/fixtures';
+
+const MOBILE_TOPICS = new Set([
+  'android',
+  'ios',
+  'react-native',
+  'flutter',
+  'swift-ui',
+  'mobile',
+]);
+const EXTENSION_TOPICS = new Set([
+  'chrome-extension',
+  'chrome-extensions',
+  'firefox-extension',
+  'web-extension',
+  'webextension',
+  'gnome-extension',
+  'gnome-shell-extension',
+]);
+const CLI_TOPICS = new Set(['cli', 'command-line', 'cli-tool', 'terminal']);
+const LIBRARY_TOPICS = new Set(['library', 'sdk', 'framework']);
+
+function deriveKind(topics: string[]): ProjectKind {
+  const t = new Set(topics.map((s) => s.toLowerCase()));
+  if ([...EXTENSION_TOPICS].some((k) => t.has(k))) return 'extension';
+  if ([...MOBILE_TOPICS].some((k) => t.has(k))) return 'mobile';
+  if ([...CLI_TOPICS].some((k) => t.has(k))) return 'cli';
+  if ([...LIBRARY_TOPICS].some((k) => t.has(k))) return 'library';
+  return 'app';
+}
 
 type GithubRepo = {
   name: string;
@@ -69,6 +98,9 @@ export const fetchGithubProjects: Connector = async (config, options) => {
       },
       language: r.language ?? undefined,
       updatedAt: r.updated_at,
+      kind: deriveKind(r.topics ?? []),
+      openSource: true,
+      sourceUrl: r.html_url,
       featured: false,
       hasDetail: false,
     }));
