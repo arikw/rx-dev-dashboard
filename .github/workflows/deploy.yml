@@ -35,17 +35,6 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
-
-      # Fast inter-run persistence of the connector snapshot. Cache survives
-      # ~7 days; the commit-back step below is the durable backup.
-      - uses: actions/cache@v4
-        with:
-          path: generated/snapshot.json
-          key: connector-snapshot-${{ github.ref_name }}-${{ github.run_id }}
-          restore-keys: |
-            connector-snapshot-${{ github.ref_name }}-
-            connector-snapshot-
-
       - run: npm ci
       - run: npm run build
         env:
