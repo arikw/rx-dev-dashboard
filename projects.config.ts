@@ -26,6 +26,8 @@ const config: ProjectsConfig = {
     siteTitle: 'Dev Projects',
     siteDescription: 'A dev project showcase + impact dashboard.',
     siteTagline: 'A field notebook for tools shipped',
+    // Longer site intro, rendered between hero and featured row. Markdown supported.
+    // siteAbout: 'A running log of things I\'ve built, packaged, or shipped...',
   },
 
   user: {
@@ -33,6 +35,8 @@ const config: ProjectsConfig = {
     github: 'YOUR_GITHUB_HANDLE',
     npm: '',                  // defaults to user.github when empty
     docker: '',               // defaults to user.github when empty
+    // Optional author bio rendered at the bottom of the page. Markdown supported.
+    // bio: 'Developer with a thing for tooling and CLI ergonomics.',
   },
 
   sources: {

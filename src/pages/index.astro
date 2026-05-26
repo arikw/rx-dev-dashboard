@@ -3,6 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
 import FeaturedRow from '../components/FeaturedRow.astro';
 import ProjectGrid from '../components/ProjectGrid.astro';
+import SiteAbout from '../components/SiteAbout.astro';
+import AuthorBio from '../components/AuthorBio.astro';
 import config from '../lib/load-config';
 import { loadProjects } from '../lib/load-projects';
 import { aggregateStats } from '../lib/aggregate-stats';
@@ -35,6 +37,8 @@ const nonFeatured = allProjects
   description={config.meta.siteDescription}
 >
   <Hero stats={stats} />
+  {config.meta.siteAbout && <SiteAbout markdown={config.meta.siteAbout} />}
   <FeaturedRow projects={featured} />
   <ProjectGrid projects={nonFeatured} pageSize={config.ui.pageSize} />
+  {config.user.bio && <AuthorBio name={config.user.name} bio={config.user.bio} />}
 </BaseLayout>

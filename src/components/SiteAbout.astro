@@ -1,0 +1,12 @@
+---
+import { marked } from 'marked';
+
+interface Props {
+  markdown: string;
+}
+const { markdown } = Astro.props;
+const html = await marked.parse(markdown.trim(), { async: true });
+---
+<section class="site-about">
+  <div class="site-about-body" set:html={html} />
+</section>

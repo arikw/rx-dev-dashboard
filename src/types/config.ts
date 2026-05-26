@@ -52,6 +52,8 @@ export type ProjectsConfig = {
     siteDescription: string;
     /** Short kicker shown above the hero. */
     siteTagline?: string;
+    /** Longer site introduction rendered between hero and featured row. Markdown. */
+    siteAbout?: string;
   };
   user: {
     name: string;
@@ -60,6 +62,8 @@ export type ProjectsConfig = {
     npm: string;
     /** Defaults to user.github when empty. */
     docker: string;
+    /** Optional short author bio rendered at the bottom of the page. Markdown. */
+    bio?: string;
   };
   sources: {
     github: GithubSourceConfig;

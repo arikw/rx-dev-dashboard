@@ -391,6 +391,73 @@ button {
   display: none;
 }
 
+/* Site about: long-form intro between hero and featured row */
+.site-about {
+  max-width: 64ch;
+  margin: 8px auto 40px;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.site-about-body p {
+  margin: 0 0 1em;
+}
+
+.site-about-body p:last-child {
+  margin-bottom: 0;
+}
+
+.site-about-body a {
+  color: var(--accent);
+}
+
+/* Author bio: footer-style block under the project grid */
+.author-bio {
+  max-width: 64ch;
+  margin: 64px auto 0;
+  padding: 24px 28px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elev, transparent);
+}
+
+.author-bio-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.author-bio-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.author-bio-name {
+  font-size: 1.05rem;
+  color: var(--fg);
+}
+
+.author-bio-body {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.author-bio-body p {
+  margin: 0 0 0.8em;
+}
+
+.author-bio-body p:last-child {
+  margin-bottom: 0;
+}
+
+.author-bio-body a {
+  color: var(--accent);
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .page {

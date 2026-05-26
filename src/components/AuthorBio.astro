@@ -1,0 +1,17 @@
+---
+import { marked } from 'marked';
+
+interface Props {
+  name: string;
+  bio: string;
+}
+const { name, bio } = Astro.props;
+const html = await marked.parse(bio.trim(), { async: true });
+---
+<aside class="author-bio">
+  <header class="author-bio-head">
+    <span class="author-bio-label">About the author</span>
+    <strong class="author-bio-name">{name}</strong>
+  </header>
+  <div class="author-bio-body" set:html={html} />
+</aside>
