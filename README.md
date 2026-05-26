@@ -21,13 +21,18 @@ Edit `projects.config.ts` to point at your own handles, then refresh.
 
 The fastest path to a working dashboard on your domain:
 
-### 1. Create your copy
+### 1. Fork this repo
 
-Click **Use this template → Create a new repository** on this repo's GitHub page. This gives you a clean, independent repo with the workflow files included and Actions enabled by default.
+Click **Fork** on this repo's GitHub page.
 
-(If you used **Fork** instead, see [Enabling Actions on a fork](#enabling-actions-on-a-fork) further down — forks ship with Actions disabled.)
+### 2. Enable Actions on your fork
 
-### 2. Edit `projects.config.ts`
+GitHub disables Actions on forks by default. Turn them on:
+
+- **Web UI:** go to your fork's **Actions** tab → click **I understand my workflows, go ahead and enable them**.
+- **CLI:** `gh api -X PUT repos/<your-user>/<your-fork>/actions/permissions -F enabled=true`
+
+### 3. Edit `projects.config.ts`
 
 The whole dashboard is driven from this one file:
 
@@ -40,47 +45,39 @@ The whole dashboard is driven from this one file:
 
 Any source you leave empty or disable just contributes nothing — connectors degrade gracefully.
 
-### 3. Add a `GH_API_TOKEN` repo secret
+### 4. Add a `GH_API_TOKEN` repo secret
 
 Settings → Secrets and variables → Actions → New repository secret. Create one named **`GH_API_TOKEN`** containing a [personal access token](https://github.com/settings/tokens) with `public_repo` read access.
 
 This bumps the GitHub connector from 60 to 5000 requests/hour. Builds still work without it but may rate-limit on larger accounts.
 
-### 4. Enable GitHub Pages
+### 5. Enable GitHub Pages
 
 Settings → Pages → Source: **GitHub Actions**.
 
-### 5. Push (or trigger manually)
+### 6. Push (or trigger manually)
 
-Push to your default branch — the workflow builds and deploys. A daily cron at 08:00 UTC also rebuilds so source-fetched stats stay fresh without manual pushes.
+Push to the default branch — the workflow builds and deploys. A daily cron at 08:00 UTC also rebuilds so source-fetched stats stay fresh without manual pushes.
 
 To trigger a one-off build without pushing: Actions tab → **Deploy** → **Run workflow**.
 
-The workflow listens on both `master` and `main`, so it'll fire whichever default branch your new repo ended up with.
+> Prefer a standalone repo over a fork? **Use this template → Create a new repository** also works — that path skips step 2 (Actions are enabled by default on template-created repos).
 
-## Enabling Actions on a fork
+## Inspecting connector data
 
-If you used **Fork** instead of **Use this template**, GitHub disables Actions on forks by default. Two ways to turn them back on:
+Every build emits `data.json` at the site root (e.g. `https://yoursite.example/data.json`) with the merged project list and a per-connector snapshot of what each source returned and when. Useful for debugging connector output and verifying tags/stats.
 
-- **Web UI:** go to the **Actions** tab of your fork → click **I understand my workflows, go ahead and enable them**.
-- **CLI:** `gh api -X PUT repos/<your-user>/<your-fork>/actions/permissions -F enabled=true`
+Each connector's snapshot is persisted across builds. If a source fails on the next run (API outage, rate limit, regex regression), the loader falls back to the most recent successful scrape for that source — only the affected connector goes stale, never the whole dashboard.
 
-After that, either push something or use the **Run workflow** button on the Deploy workflow to kick off the first build.
+## Advanced: keep some values out of git
 
-## Local development with real handles
-
-If you want to dev locally with real values you don't want to commit, create `projects.config.local.ts`:
+If you want some config values to live outside the committed file (e.g. handles you'd rather not put in a public repo, or a different deployment URL when testing locally), create `projects.config.local.ts` next to `projects.config.ts`:
 
 ```ts
 import baseConfig from './projects.config';
 
 export default {
   ...baseConfig,
-  deployment: {
-    ...baseConfig.deployment,
-    site: 'https://your-host.example',
-    base: '/projects',
-  },
   user: {
     ...baseConfig.user,
     github: 'your-handle',
@@ -88,7 +85,9 @@ export default {
 };
 ```
 
-The file is `.gitignored` — the loader shallow-merges it over `projects.config.ts` at build time when present.
+The file is `.gitignored`. The loader shallow-merges it over `projects.config.ts` at build time when present, so you can override any subtree.
+
+Most cloners don't need this — editing `projects.config.ts` directly and committing is the normal path.
 
 ## Commands
 
@@ -102,18 +101,22 @@ npm run preview           # serve dist/ locally
 
 ```
 .
-├── astro.config.mjs                reads site/base from projects.config.ts
+├── astro.config.mjs                reads deployment.site/base from projects.config.ts
 ├── projects.config.ts              single source of truth (config-driven)
+├── data/snapshot.json              persisted per-connector results (gitignored)
 ├── src/
 │   ├── content.config.ts           Zod schema for optional detail pages
 │   ├── content/projects/           optional detail .mdx files (one per project slug)
-│   ├── connectors/                 github, npm, docker, chrome
-│   ├── lib/                        load-config, load-projects, aggregate-stats
-│   ├── components/                 Hero, Stat, ProjectCard, FeaturedRow, TagFilter, BaseHead
+│   ├── connectors/                 github, npm, docker, chrome, manual + shared types
+│   ├── lib/                        load-config, load-projects, snapshot-store, aggregate-stats, fixtures
+│   ├── components/                 BaseHead, Hero, Stat, ProjectCard, ProjectGrid, FeaturedRow, TagFilter
 │   ├── layouts/                    BaseLayout
-│   └── pages/
-│       ├── index.astro             the showcase
-│       └── projects/[...slug].astro detail routes
+│   ├── pages/
+│   │   ├── index.astro             the showcase
+│   │   └── data.json.ts            machine-readable snapshot + project list
+│   ├── styles/                     global CSS
+│   ├── types/                      Project, ProjectsConfig types
+│   └── utils/
 ├── tests/fixtures/                 connector fixtures for offline builds
-└── .github/workflows/deploy.yml    build + Pages deploy
+└── .github/workflows/deploy.yml    build + Pages deploy with snapshot cache
 ```

@@ -2,9 +2,7 @@ name: Deploy
 
 on:
   push:
-    # Covers the two most common default-branch names so the workflow works
-    # for cloners regardless of which one they ended up with.
-    branches: [master, main]
+    branches: [master]
   schedule:
     # Daily at 08:00 UTC — refreshes source-fetched stats so the dashboard
     # stays current without a manual push.
@@ -33,6 +31,15 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
+      # Persist the connector snapshot across runs so a transient API failure
+      # doesn't blank out that source on the next deploy.
+      - uses: actions/cache@v4
+        with:
+          path: data/snapshot.json
+          key: connector-snapshot-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            connector-snapshot-${{ github.ref_name }}-
+            connector-snapshot-
       - run: npm ci
       - run: npm run build
         env:

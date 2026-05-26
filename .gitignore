@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .astro/
+
+# Connector snapshot — persisted via actions/cache in CI; rebuilt locally on demand
+data/snapshot.json
 .env
 .env.*
 !.env.example
