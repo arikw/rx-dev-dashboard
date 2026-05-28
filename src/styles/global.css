@@ -119,8 +119,8 @@ button {
 }
 
 .hero-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
@@ -129,6 +129,7 @@ button {
 }
 
 .stat {
+  flex: 1 1 200px;
   background: var(--card-bg);
   padding: 24px 22px;
 }
@@ -213,7 +214,7 @@ button {
 .thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 320 / 120;
+  aspect-ratio: 320 / 84;
   background: var(--border);
   overflow: hidden;
   border-bottom: 1px solid var(--border);
@@ -281,6 +282,11 @@ button {
 
 .card--featured .card-title h3 {
   font-size: 1.25rem;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .card-arrow {
@@ -438,6 +444,19 @@ button {
 .card-badge--oss:hover {
   border-color: hsl(140, 45%, 55%);
   color: hsl(140, 55%, 75%);
+}
+
+.card-badge--site {
+  color: var(--muted);
+  max-width: 14ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-badge--site:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .projects-empty {

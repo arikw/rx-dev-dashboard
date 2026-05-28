@@ -9,6 +9,7 @@ type DockerRepo = {
   pull_count: number;
   star_count: number;
   last_updated: string;
+  date_registered?: string;
   is_private: boolean;
 };
 
@@ -54,6 +55,7 @@ export const fetchDockerProjects: Connector = async (config, options) => {
       dockerStars: r.star_count,
     },
     updatedAt: r.last_updated,
+    year: r.date_registered ? new Date(r.date_registered).getUTCFullYear() : undefined,
     kind: 'image',
     // openSource is set by the cross-source pass in load-projects when a
     // matching github repo of the same name exists.

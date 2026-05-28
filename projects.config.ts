@@ -82,8 +82,8 @@ const config: ProjectsConfig = {
   ui: {
     pageSize: 12,
     hero: {
-      showAllTimeInstalls: true,
-      showMonthlyReach: true,
+      showDownloads: true,
+      showUsers: true,
     },
   },
 };

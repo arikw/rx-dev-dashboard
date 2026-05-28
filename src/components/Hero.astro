@@ -25,18 +25,18 @@ const portfolioCount = Math.max(0, stats.totalProjects - stats.openSourceCount);
       label="Stars & likes"
       sublabel={`across ${stats.openSourceCount} open-source ${stats.openSourceCount === 1 ? 'project' : 'projects'}`}
     />
-    {config.ui.hero.showAllTimeInstalls && (
+    {config.ui.hero.showDownloads && stats.downloadsAndPulls > 0 && (
       <Stat
-        value={`${formatStat(stats.allTimeInstalls)}+`}
-        label="All-time reach"
-        sublabel="Docker pulls + npm yearly + Chrome users"
+        value={`${formatStat(stats.downloadsAndPulls)}+`}
+        label="Downloads & pulls"
+        sublabel="npm all-time + Docker pulls — install events, incl. CI"
       />
     )}
-    {config.ui.hero.showMonthlyReach && (
+    {config.ui.hero.showUsers && stats.activeUsers > 0 && (
       <Stat
-        value={formatStat(stats.monthlyReach)}
-        label="Monthly users"
-        sublabel="npm monthly downloads + Chrome users"
+        value={`${formatStat(stats.activeUsers)}+`}
+        label="Active users"
+        sublabel="current Chrome Web Store installs"
       />
     )}
     <Stat

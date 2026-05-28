@@ -94,8 +94,10 @@ export type ProjectsConfig = {
     /** Cards shown before "Show more" reveals the next batch. */
     pageSize: number;
     hero: {
-      showAllTimeInstalls: boolean;
-      showMonthlyReach: boolean;
+      /** Show the "Downloads & pulls" stat (npm all-time + Docker pulls). */
+      showDownloads: boolean;
+      /** Show the "Active users" stat (Chrome current users). */
+      showUsers: boolean;
     };
   };
 };

@@ -4,14 +4,13 @@ export type HeroStats = {
   /** GitHub stars + Docker Hub stars + Chrome Web Store rating counts. */
   starsAndLikes: number;
   /**
-   * Combined reach signal. Docker pulls are true all-time. npm "last-year"
-   * downloads are an annual proxy (npm doesn't track all-time). Chrome
-   * "users" is current install count — included here as a baseline since
-   * Chrome doesn't expose lifetime installs.
+   * Cumulative install/fetch events: npm all-time downloads + Docker pulls.
+   * These are machine-driven event counts (CI inflates them), not unique
+   * people — kept separate from a headcount on purpose.
    */
-  allTimeInstalls: number;
-  /** npm last-month downloads + Chrome current users. */
-  monthlyReach: number;
+  downloadsAndPulls: number;
+  /** Chrome Web Store current users — a point-in-time install headcount. */
+  activeUsers: number;
   totalProjects: number;
   openSourceCount: number;
 };
@@ -20,8 +19,8 @@ const num = (n: number | undefined): number => n ?? 0;
 
 export function aggregateStats(projects: Project[]): HeroStats {
   let starsAndLikes = 0;
-  let allTimeInstalls = 0;
-  let monthlyReach = 0;
+  let downloadsAndPulls = 0;
+  let activeUsers = 0;
   let openSourceCount = 0;
 
   for (const p of projects) {
@@ -30,16 +29,15 @@ export function aggregateStats(projects: Project[]): HeroStats {
     starsAndLikes +=
       num(p.stats.stars) + num(p.stats.dockerStars) + num(p.stats.ratingCount);
 
-    allTimeInstalls +=
-      num(p.stats.pulls) + num(p.stats.users) + num(p.stats.downloadsLastYear);
+    downloadsAndPulls += num(p.stats.downloadsAllTime) + num(p.stats.pulls);
 
-    monthlyReach += num(p.stats.downloadsMonthly) + num(p.stats.users);
+    activeUsers += num(p.stats.users);
   }
 
   return {
     starsAndLikes,
-    allTimeInstalls,
-    monthlyReach,
+    downloadsAndPulls,
+    activeUsers,
     totalProjects: projects.length,
     openSourceCount,
   };

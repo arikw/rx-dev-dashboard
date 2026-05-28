@@ -20,6 +20,14 @@ if (p.stats.rating !== undefined && p.stats.ratingCount) {
 }
 
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
+
+// Only badge open-source when the source chip doesn't already imply it
+// (github/npm are open-source by nature). Keeps the badge a signal, not noise.
+const showOssBadge = !!p.openSource && p.source !== 'github' && p.source !== 'npm';
+
+// Project's own website, if it has one distinct from its listing URL.
+const homepage = p.homepage && p.homepage !== p.url ? p.homepage : null;
+const homepageHost = homepage ? homepage.replace(/^https?:\/\//, '').replace(/\/$/, '') : null;
 ---
 <article class={`card card--${size}`} data-tags={p.tags.join(',')} data-source={p.source}>
   <ProjectThumb project={p} />
@@ -31,18 +39,29 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
     <span class={`card-source card-source--${p.source}`}>{p.source}</span>
   </header>
 
-  <p class="card-badges">
-    {p.kind && <span class={`card-badge card-badge--kind card-badge--kind-${p.kind}`}>{p.kind}</span>}
-    {p.openSource && (
-      <a
-        class="card-badge card-badge--oss"
-        href={p.sourceUrl ?? p.url}
-        target="_blank"
-        rel="noopener"
-        title={p.sourceUrl ? `Source: ${p.sourceUrl}` : 'Open source'}
-      >open source</a>
-    )}
-  </p>
+  {(p.kind || showOssBadge || homepage) && (
+    <p class="card-badges">
+      {p.kind && <span class={`card-badge card-badge--kind card-badge--kind-${p.kind}`}>{p.kind}</span>}
+      {showOssBadge && (
+        <a
+          class="card-badge card-badge--oss"
+          href={p.sourceUrl ?? p.url}
+          target="_blank"
+          rel="noopener"
+          title={p.sourceUrl ? `Source: ${p.sourceUrl}` : 'Open source'}
+        >open source</a>
+      )}
+      {homepage && (
+        <a
+          class="card-badge card-badge--site"
+          href={homepage}
+          target="_blank"
+          rel="noopener"
+          title={homepage}
+        >{homepageHost} ↗</a>
+      )}
+    </p>
+  )}
 
   {p.description && <p class="card-desc">{p.description}</p>}
 

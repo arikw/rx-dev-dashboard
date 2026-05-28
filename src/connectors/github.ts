@@ -35,10 +35,12 @@ type GithubRepo = {
   name: string;
   description: string | null;
   html_url: string;
+  homepage: string | null;
   stargazers_count: number;
   forks_count: number;
   topics?: string[];
   language: string | null;
+  created_at: string;
   updated_at: string;
   fork: boolean;
   archived: boolean;
@@ -98,6 +100,8 @@ export const fetchGithubProjects: Connector = async (config, options) => {
       },
       language: r.language ?? undefined,
       updatedAt: r.updated_at,
+      year: r.created_at ? new Date(r.created_at).getUTCFullYear() : undefined,
+      homepage: r.homepage?.trim() ? r.homepage.trim() : undefined,
       kind: deriveKind(r.topics ?? []),
       openSource: true,
       sourceUrl: r.html_url,

@@ -15,9 +15,8 @@ export type ProjectStats = {
   stars?: number;
   forks?: number;
   // npm
-  downloadsLastYear?: number;
+  downloadsAllTime?: number;
   downloadsMonthly?: number;
-  downloadsWeekly?: number;
   // docker
   pulls?: number;
   dockerStars?: number;
@@ -38,10 +37,12 @@ export type Project = {
   tags: string[];
   stats: ProjectStats;
   language?: string;
-  /** ISO date string. */
+  /** ISO date string of the most recent update. */
   updatedAt?: string;
-  /** Year for manual entries that don't have a source-side updated date. */
+  /** First-publication / creation year. Derived per source where available; manual entries set it directly. */
   year?: number;
+  /** The project's own website/homepage, distinct from `url` (listing) and `sourceUrl` (repo). */
+  homepage?: string;
   /** Optional thumbnail/image URL. When absent, the card renders a generated SVG fallback. */
   image?: string;
   /** Coarse project type. Derived per source + topics; manual entries can override. */
