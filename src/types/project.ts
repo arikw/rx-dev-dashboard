@@ -59,6 +59,9 @@ export type Project = {
   image?: string;
   /** Coarse project type. Derived per source + topics; manual entries can override. */
   kind?: ProjectKind;
+  /** True when `stats.installs` is an exact count (manual Play Console total or
+   * APKPure mirror count) rather than a Google Play tier floor like "10,000+". */
+  installsExact?: boolean;
   /** True when the project has a publicly accessible source repository. */
   openSource?: boolean;
   /** Canonical source-repo URL when known (set by github directly or cross-source match). */

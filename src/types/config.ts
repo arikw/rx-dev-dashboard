@@ -1,3 +1,11 @@
+import type { ProjectStats } from './project';
+
+/** A builder-level patch applied to a project's snapshot entry by id. It's a
+ * subset of that project's stats, plus `installsExact` to mark an overridden
+ * install count as exact (`true`, drops the "+") or an approximate floor
+ * (`false`, keeps the "+"). */
+export type ProjectOverride = Partial<ProjectStats> & { installsExact?: boolean };
+
 export type ManualProject = {
   slug: string;
   title: string;
@@ -108,6 +116,11 @@ export type ProjectsConfig = {
     /** Tag names to exclude entirely (case-insensitive). */
     exclude?: string[];
   };
+  /** Builder-level overrides, keyed by a project's snapshot-entry id
+   * (e.g. "appbrain:brokencalc"). The connectors write raw data to the
+   * snapshot; these patches are applied at build time — e.g. an exact Play
+   * Console install total the connectors can't reach. See {@link ProjectOverride}. */
+  overrides?: Record<string, ProjectOverride>;
   /** Project slugs to pin at the top of the page. */
   featured: string[];
   /** Projects without an online source (closed-source, retired, etc.). */

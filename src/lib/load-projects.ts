@@ -110,13 +110,30 @@ async function loadOnce(): Promise<Project[]> {
 
   const featuredSlugs = new Set(config.featured);
 
-  // Resolve featured/hasDetail per source-project first (by its own id), then
-  // merge same-project-across-sources into one card (those flags get OR-ed).
-  const resolved = [...sourced, ...manual].map((p) => ({
-    ...p,
-    featured: p.featured || featuredSlugs.has(p.id),
-    hasDetail: detailSlugs.has(p.id),
-  }));
+  const overrides = config.overrides ?? {};
+
+  // Resolve featured/hasDetail per source-project (by its own id) and apply any
+  // builder-level stat overrides to the raw snapshot entry, then merge
+  // same-project-across-sources into one card (those flags get OR-ed). The
+  // snapshot itself stays raw — overrides are applied only to this in-memory
+  // copy, after writeSnapshot above.
+  const resolved = [...sourced, ...manual].map((p) => {
+    const base = {
+      ...p,
+      featured: p.featured || featuredSlugs.has(p.id),
+      hasDetail: detailSlugs.has(p.id),
+    };
+    const ov = overrides[p.id];
+    if (!ov) return base;
+    // `installsExact` is set explicitly in the patch (no inference); the rest of
+    // the patch is a stats subset merged over the entry's raw stats.
+    const { installsExact, ...statPatch } = ov;
+    return {
+      ...base,
+      stats: { ...base.stats, ...statPatch },
+      installsExact: installsExact !== undefined ? installsExact : base.installsExact,
+    };
+  });
 
   return mergeProjects(resolved);
 }

@@ -109,6 +109,9 @@ function mergeGroup(group: Project[]): Project {
     homepage: homepage ?? undefined,
     image: firstDefined(ordered, (p) => p.image)?.image,
     kind: primary.kind ?? firstDefined(ordered, (p) => p.kind)?.kind,
+    // Keep installsExact aligned with whichever source supplied `stats.installs`
+    // (same first-defined-by-rank order used for the stats above).
+    installsExact: ordered.find((p) => p.stats.installs != null)?.installsExact,
     openSource: ordered.some((p) => p.openSource || p.source === 'github' || p.source === 'npm'),
     sourceUrl: githubMember?.url ?? firstDefined(ordered, (p) => p.sourceUrl)?.sourceUrl,
     featured: ordered.some((p) => p.featured),

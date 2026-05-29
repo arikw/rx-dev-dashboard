@@ -190,6 +190,10 @@ export const fetchAppbrainProjects: Connector = async (config, options) => {
         ...(a.ratingHistogram ? { ratingHistogram: a.ratingHistogram } : {}),
         ...(a.installs != null ? { installs: a.installs } : {}),
       },
+      // AppBrain reports Google Play's "10,000+" tier — a floor, not exact.
+      // Builder-level overrides (config.overrides) can replace it with an exact
+      // Play Console total.
+      installsExact: a.installs != null ? false : undefined,
       year: a.year,
       kind: 'mobile',
       openSource: false,

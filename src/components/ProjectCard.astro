@@ -39,12 +39,18 @@ for (const s of cardSources) {
 }
 
 if (p.stats.installs !== undefined && p.stats.installs > 0) {
-  // AppBrain wins the merge, so installs is the Google Play tier when present;
-  // otherwise it's APKPure's own mirror download count. Label honestly.
+  // AppBrain supplies installs (Google Play); APKPure only when an app isn't on
+  // AppBrain. The "+" appears only for the approximate "10,000+" Play tier —
+  // exact counts (Play Console override, APKPure mirror) show no "+".
   const fromPlay = cardSources.includes('appbrain');
+  const n = formatStat(p.stats.installs);
   stats.push({
-    text: fromPlay ? `${formatStat(p.stats.installs)}+ installs` : `${formatStat(p.stats.installs)} downloads`,
-    title: fromPlay ? 'Google Play installs (10,000+ tier)' : 'APKPure downloads',
+    text: fromPlay ? `${n}${p.installsExact ? '' : '+'} installs` : `${n} downloads`,
+    title: fromPlay
+      ? p.installsExact
+        ? 'Google Play installs (Play Console total)'
+        : 'Google Play installs (10,000+ tier)'
+      : 'APKPure downloads',
     icon: 'download',
   });
 }

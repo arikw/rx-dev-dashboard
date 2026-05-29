@@ -186,6 +186,8 @@ export const fetchApkpureProjects: Connector = async (config, options) => {
         ...(a.ratingCount != null ? { ratingCount: a.ratingCount } : {}),
         ...(a.downloads != null ? { installs: a.downloads } : {}),
       },
+      // APKPure's mirror download count is an exact number (not a tier floor).
+      installsExact: a.downloads != null ? true : undefined,
       image: a.image,
       year: a.year,
       kind: 'mobile',
