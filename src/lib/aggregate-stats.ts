@@ -4,9 +4,9 @@ export type HeroStats = {
   /** GitHub stars + Docker Hub stars + Chrome Web Store rating counts. */
   starsAndLikes: number;
   /**
-   * Cumulative install/fetch events: npm all-time downloads + Docker pulls.
-   * These are machine-driven event counts (CI inflates them), not unique
-   * people — kept separate from a headcount on purpose.
+   * Cumulative install/fetch events: npm all-time downloads + Docker pulls +
+   * GNOME extension downloads. These are event counts (CI inflates npm/Docker),
+   * not unique people — kept separate from a headcount on purpose.
    */
   downloadsAndPulls: number;
   /** Chrome Web Store current users — a point-in-time install headcount. */
@@ -29,7 +29,8 @@ export function aggregateStats(projects: Project[]): HeroStats {
     starsAndLikes +=
       num(p.stats.stars) + num(p.stats.dockerStars) + num(p.stats.ratingCount);
 
-    downloadsAndPulls += num(p.stats.downloadsAllTime) + num(p.stats.pulls);
+    downloadsAndPulls +=
+      num(p.stats.downloadsAllTime) + num(p.stats.pulls) + num(p.stats.gnomeDownloads);
 
     activeUsers += num(p.stats.users);
   }

@@ -29,7 +29,7 @@ const portfolioCount = Math.max(0, stats.totalProjects - stats.openSourceCount);
       <Stat
         value={`${formatStat(stats.downloadsAndPulls)}+`}
         label="Downloads & pulls"
-        sublabel="npm all-time + Docker pulls — install events, incl. CI"
+        sublabel="npm all-time, Docker pulls & GNOME installs — event counts"
       />
     )}
     {config.ui.hero.showUsers && stats.activeUsers > 0 && (

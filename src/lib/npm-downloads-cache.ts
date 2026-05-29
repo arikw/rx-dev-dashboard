@@ -20,6 +20,9 @@ export type PackageDownloads = {
   created: string;
   /** year -> downloads (>= 0) or REFETCH (-1). */
   years: Record<string, number>;
+  /** Last successfully-fetched last-30-days count. Reused when a fetch fails so
+   * a transient rate-limit doesn't drop the figure (it's never stored as 0). */
+  lastMonth?: number;
 };
 
 export type NpmDownloadsCache = {
@@ -48,7 +51,7 @@ function coerceYear(v: unknown): number | undefined {
 export function readNpmCache(): NpmDownloadsCache {
   if (!existsSync(CACHE_PATH)) return empty();
   try {
-    const parsed = JSON.parse(readFileSync(CACHE_PATH, 'utf8')) as { packages?: Record<string, { created?: string; years?: Record<string, unknown> }> };
+    const parsed = JSON.parse(readFileSync(CACHE_PATH, 'utf8')) as { packages?: Record<string, { created?: string; years?: Record<string, unknown>; lastMonth?: unknown }> };
     if (!parsed?.packages) return empty();
     const out = empty();
     for (const [name, p] of Object.entries(parsed.packages)) {
@@ -58,7 +61,11 @@ export function readNpmCache(): NpmDownloadsCache {
         const n = coerceYear(v);
         if (n !== undefined) years[y] = n;
       }
-      out.packages[name] = { created: p.created, years };
+      out.packages[name] = {
+        created: p.created,
+        years,
+        ...(typeof p.lastMonth === 'number' ? { lastMonth: p.lastMonth } : {}),
+      };
     }
     return out;
   } catch (err) {

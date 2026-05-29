@@ -10,13 +10,22 @@ interface Props {
 const { project: p, size = 'compact' } = Astro.props;
 const base = import.meta.env.BASE_URL;
 
-const statLines: string[] = [];
-if (p.stats.stars !== undefined && p.stats.stars > 0) statLines.push(`★ ${formatStat(p.stats.stars)}`);
-if (p.stats.users !== undefined && p.stats.users > 0) statLines.push(`${formatStat(p.stats.users)} users`);
-if (p.stats.pulls !== undefined && p.stats.pulls > 0) statLines.push(`${formatStat(p.stats.pulls)} pulls`);
-if (p.stats.downloadsMonthly !== undefined && p.stats.downloadsMonthly > 0) statLines.push(`${formatStat(p.stats.downloadsMonthly)}/mo`);
+type CardStat = { text: string; title: string; icon?: 'download' | 'users' };
+const stats: CardStat[] = [];
+if (p.stats.stars !== undefined && p.stats.stars > 0)
+  stats.push({ text: `★ ${formatStat(p.stats.stars)}`, title: 'GitHub stars' });
+if (p.stats.users !== undefined && p.stats.users > 0)
+  stats.push({ text: `${formatStat(p.stats.users)} weekly users`, title: 'Weekly active users (Chrome Web Store)', icon: 'users' });
+if (p.stats.pulls !== undefined && p.stats.pulls > 0)
+  stats.push({ text: `${formatStat(p.stats.pulls)} pulls`, title: 'Docker Hub pulls (all-time)', icon: 'download' });
+if (p.stats.gnomeDownloads !== undefined && p.stats.gnomeDownloads > 0)
+  stats.push({ text: `${formatStat(p.stats.gnomeDownloads)} downloads`, title: 'GNOME Extensions downloads (all-time)', icon: 'download' });
+if (p.stats.downloadsAllTime !== undefined && p.stats.downloadsAllTime > 0)
+  stats.push({ text: `${formatStat(p.stats.downloadsAllTime)} downloads`, title: 'npm downloads (all-time)', icon: 'download' });
+if (p.stats.downloadsMonthly !== undefined && p.stats.downloadsMonthly > 0)
+  stats.push({ text: `${formatStat(p.stats.downloadsMonthly)}/mo`, title: 'npm downloads in the last 30 days', icon: 'download' });
 if (p.stats.rating !== undefined && p.stats.ratingCount) {
-  statLines.push(`${p.stats.rating.toFixed(1)}★ (${formatStat(p.stats.ratingCount)})`);
+  stats.push({ text: `${p.stats.rating.toFixed(1)}★ (${formatStat(p.stats.ratingCount)})`, title: 'Chrome Web Store rating (number of ratings)' });
 }
 
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
@@ -36,7 +45,11 @@ const homepageHost = homepage ? homepage.replace(/^https?:\/\//, '').replace(/\/
       <h3>{p.title}</h3>
       <span class="card-arrow" aria-hidden="true">↗</span>
     </a>
-    <span class={`card-source card-source--${p.source}`}>{p.source}</span>
+    <span class="card-sources">
+      {(p.sources ?? [p.source]).map((s) => (
+        <span class={`card-source card-source--${s}`}>{s}</span>
+      ))}
+    </span>
   </header>
 
   {(p.kind || showOssBadge || homepage) && (
@@ -65,8 +78,24 @@ const homepageHost = homepage ? homepage.replace(/^https?:\/\//, '').replace(/\/
 
   {p.description && <p class="card-desc">{p.description}</p>}
 
-  {statLines.length > 0 && (
-    <p class="card-stats">{statLines.join(' · ')}</p>
+  {stats.length > 0 && (
+    <p class="card-stats">
+      {stats.map((s) => (
+        <span class="card-stat" title={s.title}>
+          {s.icon === 'download' && (
+            <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z" />
+            </svg>
+          )}
+          {s.icon === 'users' && (
+            <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+          )}
+          {s.text}
+        </span>
+      ))}
+    </p>
   )}
 
   {p.tags.length > 0 && (

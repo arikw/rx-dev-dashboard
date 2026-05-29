@@ -1,4 +1,4 @@
-export type ProjectSource = 'github' | 'npm' | 'docker' | 'chrome' | 'manual';
+export type ProjectSource = 'github' | 'npm' | 'docker' | 'chrome' | 'gnome' | 'manual';
 
 export type ProjectKind =
   | 'app'
@@ -24,12 +24,17 @@ export type ProjectStats = {
   users?: number;
   rating?: number;
   ratingCount?: number;
+  // gnome (extensions.gnome.org)
+  gnomeDownloads?: number;
 };
 
 export type Project = {
   /** Canonical slug. Stable across builds. */
   id: string;
+  /** Canonical (primary) source. */
   source: ProjectSource;
+  /** All sources merged into this card (primary first). Set only by the merge step. */
+  sources?: ProjectSource[];
   title: string;
   description: string;
   /** Outbound link (repo, package, store listing, or arbitrary URL for manual entries). */

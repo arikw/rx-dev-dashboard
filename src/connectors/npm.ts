@@ -80,14 +80,16 @@ async function fetchPackagesByMaintainer(user: string): Promise<NpmSearchResult[
   return all;
 }
 
-async function fetchPointDownloads(pkg: string, period: string): Promise<number> {
+// Returns null on fetch failure (e.g. rate-limit) so a transient error is never
+// recorded as a genuine 0 — the caller omits the stat instead of showing a lie.
+async function fetchPointDownloads(pkg: string, period: string): Promise<number | null> {
   try {
     const data = await fetchJson<{ downloads?: number }>(
       `https://api.npmjs.org/downloads/point/${period}/${encodeURIComponent(pkg)}`,
     );
-    return data.downloads ?? 0;
+    return data.downloads ?? null;
   } catch {
-    return 0;
+    return null;
   }
 }
 
@@ -177,8 +179,10 @@ export const fetchNpmProjects: Connector = async (config, options) => {
   // actually faster. Anything that still fails just refetches next cron run.
   const enriched = await mapLimit(picked, 1, async (m) => {
     const name = m.package.name;
-    const monthly = await fetchPointDownloads(name, 'last-month');
+    const fetched = await fetchPointDownloads(name, 'last-month');
     const dl = await refreshPackage(cache, name, m.package.date, now);
+    if (fetched != null) dl.lastMonth = fetched; // persist last-good monthly
+    const monthly = fetched ?? dl.lastMonth ?? null; // reuse cached when fetch failed
     return { entry: m, monthly, allTime: sumAllTime(dl), firstYear: new Date(dl.created).getUTCFullYear() };
   });
 
@@ -193,7 +197,7 @@ export const fetchNpmProjects: Connector = async (config, options) => {
     homepage: entry.package.links.homepage,
     tags: entry.package.keywords ?? [],
     stats: {
-      downloadsMonthly: monthly,
+      ...(monthly != null ? { downloadsMonthly: monthly } : {}),
       downloadsAllTime: allTime,
     },
     updatedAt: entry.package.date,

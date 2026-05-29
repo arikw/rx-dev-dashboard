@@ -57,6 +57,10 @@ const config: ProjectsConfig = {
       enabled: true,
       extensionIds: [],       // 32-char IDs from chromewebstore.google.com URLs
     },
+    gnome: {
+      enabled: true,
+      extensionIds: [],       // numeric pk from extensions.gnome.org/extension/<pk>/...
+    },
   },
 
   // Project slugs to pin at the top of the page. Works for any source:

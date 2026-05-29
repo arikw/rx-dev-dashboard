@@ -302,6 +302,14 @@ button {
   color: var(--accent);
 }
 
+.card-sources {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
 .card-source {
   font-size: 0.65rem;
   text-transform: uppercase;
@@ -331,6 +339,28 @@ button {
   font-size: 0.82rem;
   color: var(--muted);
   font-feature-settings: 'tnum';
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 4px;
+}
+
+.card-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.card-stat:not(:first-child)::before {
+  content: '·';
+  margin: 0 7px;
+  color: var(--muted);
+}
+
+.stat-icon {
+  width: 0.82em;
+  height: 0.82em;
+  opacity: 0.7;
 }
 
 .card-tags {

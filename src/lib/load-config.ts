@@ -21,6 +21,7 @@ function mergeConfig(base: ProjectsConfig, override?: ProjectsConfig): ProjectsC
       npm: { ...base.sources.npm, ...override.sources?.npm },
       docker: { ...base.sources.docker, ...override.sources?.docker },
       chrome: { ...base.sources.chrome, ...override.sources?.chrome },
+      gnome: { ...base.sources.gnome, ...override.sources?.gnome },
     },
     ui: {
       ...base.ui,

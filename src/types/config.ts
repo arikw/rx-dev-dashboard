@@ -40,6 +40,12 @@ export type ChromeSourceConfig = {
   extensionIds: string[];
 };
 
+export type GnomeSourceConfig = {
+  enabled: boolean;
+  /** Numeric extension IDs (the `pk` in extensions.gnome.org/extension/<pk>/...). */
+  extensionIds: number[];
+};
+
 export type DeploymentConfig = {
   /** Absolute origin where the site is served (no trailing slash). */
   site: string;
@@ -76,6 +82,7 @@ export type ProjectsConfig = {
     npm: NpmSourceConfig;
     docker: DockerSourceConfig;
     chrome: ChromeSourceConfig;
+    gnome: GnomeSourceConfig;
   };
   /** Tag filter behaviour. */
   tags?: {
