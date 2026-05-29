@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { Connector } from './types';
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 import { loadFixture } from '../lib/fixtures';
 import { readJsonCache, writeJsonCache } from '../lib/json-cache';
 
@@ -150,12 +150,6 @@ async function scrapeApp(pkg: string): Promise<AppbrainApp | null> {
   };
 }
 
-/** "net.wzmn.games.brokencalc" → "brokencalc" (slug + name-merge key). */
-function lastSegment(pkg: string): string {
-  const parts = pkg.split('.');
-  return parts[parts.length - 1] || pkg;
-}
-
 export const fetchAppbrainProjects: Connector = async (config, options) => {
   const packages = config.sources.gplay.packages;
   if (!packages.length) return [];
@@ -177,27 +171,27 @@ export const fetchAppbrainProjects: Connector = async (config, options) => {
   return packages
     .map((p) => cache.apps[p])
     .filter((a): a is AppbrainApp => !!a)
-    .map<Project>((a) => ({
-      id: `appbrain:${lastSegment(a.packageName)}`,
-      source: 'appbrain',
-      title: a.title,
-      description: a.description ?? '',
-      url: a.url,
-      tags: ['android'],
-      stats: {
-        ...(a.rating != null ? { rating: a.rating } : {}),
-        ...(a.ratingCount != null ? { ratingCount: a.ratingCount } : {}),
-        ...(a.ratingHistogram ? { ratingHistogram: a.ratingHistogram } : {}),
-        ...(a.installs != null ? { installs: a.installs } : {}),
+    .map<ConnectorResult>((a) => ({
+      // AppBrain isn't the origin — it points at the Google Play resource
+      // (identity only; the Play listing is dead for removed apps, so the live
+      // link lives on the mirror).
+      origin: { platform: 'google-play', id: a.packageName },
+      // AppBrain's replicated copy of the Play data. installs is the "10,000+"
+      // tier (a floor); a manual origin (Play Console) outranks it in reconcile.
+      mirror: {
+        platform: 'appbrain',
+        url: a.url,
+        title: a.title,
+        description: a.description ?? '',
+        firstReleased: a.year,
+        tags: ['android'],
+        kind: 'mobile',
+        stats: {
+          ...(a.installs != null ? { installs: { value: a.installs, exact: false } } : {}),
+          ...(a.rating != null && a.ratingCount != null
+            ? { rating: { average: a.rating, count: a.ratingCount, histogram: a.ratingHistogram } }
+            : {}),
+        },
       },
-      // AppBrain reports Google Play's "10,000+" tier — a floor, not exact.
-      // Builder-level overrides (config.overrides) can replace it with an exact
-      // Play Console total.
-      installsExact: a.installs != null ? false : undefined,
-      year: a.year,
-      kind: 'mobile',
-      openSource: false,
-      featured: false,
-      hasDetail: false,
     }));
 };

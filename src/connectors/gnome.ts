@@ -1,5 +1,5 @@
 import type { Connector } from './types';
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 import { loadFixture } from '../lib/fixtures';
 
 // extensions.gnome.org has no public per-creator listing, so (like Chrome) the
@@ -44,26 +44,25 @@ export const fetchGnomeProjects: Connector = async (config, options) => {
   const results = await Promise.all(ids.map((pk) => fetchOne(pk)));
   const valid = results.filter((e): e is EgoExtension => e !== null);
 
-  return valid.map<Project>((e) => {
+  return valid.map<ConnectorResult>((e) => {
     const slug = slugFromLink(e.link, e.pk);
     const repo = e.url?.trim() || undefined;
     return {
-      id: `gnome:${slug}`,
-      source: 'gnome',
-      title: e.name,
-      description: e.description ?? '',
-      url: `https://extensions.gnome.org/extension/${e.pk}/${slug}/`,
-      tags: ['gnome-extension'],
-      stats: {
-        gnomeDownloads: e.downloads,
+      // GNOME Extensions is the origin. EGO's project URL is the source repo;
+      // exposing it as `sourceUrl` lets the builder merge this with the repo
+      // (same name + homepage linkage). "downloads" is canonical.
+      origin: {
+        platform: 'gnome',
+        id: slug,
+        url: `https://extensions.gnome.org/extension/${e.pk}/${slug}/`,
+        title: e.name,
+        description: e.description ?? '',
+        tags: ['gnome-extension'],
+        kind: 'extension',
+        openSource: true,
+        sourceUrl: repo,
+        stats: { downloads: e.downloads },
       },
-      // EGO's project URL is the source repo; expose it so the open-source
-      // badge links it and the merge step collapses this with the repo card.
-      sourceUrl: repo,
-      kind: 'extension',
-      openSource: true,
-      featured: false,
-      hasDetail: false,
     };
   });
 };

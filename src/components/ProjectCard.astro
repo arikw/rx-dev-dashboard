@@ -1,5 +1,5 @@
 ---
-import type { Project, ProjectSource } from '../types/project';
+import type { Project } from '../types/project';
 import { formatStat } from '../lib/aggregate-stats';
 import { sourceLabel } from '../lib/source-label';
 import ProjectThumb from './ProjectThumb.astro';
@@ -13,63 +13,47 @@ const base = import.meta.env.BASE_URL;
 
 type CardStat = { text: string; title: string; icon?: 'download' | 'users' };
 const stats: CardStat[] = [];
-if (p.stats.stars !== undefined && p.stats.stars > 0)
-  stats.push({ text: `★ ${formatStat(p.stats.stars)}`, title: 'GitHub stars' });
-if (p.stats.users !== undefined && p.stats.users > 0)
-  stats.push({ text: `${formatStat(p.stats.users)} weekly users`, title: 'Weekly active users (Chrome Web Store)', icon: 'users' });
-if (p.stats.pulls !== undefined && p.stats.pulls > 0)
-  stats.push({ text: `${formatStat(p.stats.pulls)} pulls`, title: 'Docker Hub pulls (all-time)', icon: 'download' });
-if (p.stats.gnomeDownloads !== undefined && p.stats.gnomeDownloads > 0)
-  stats.push({ text: `${formatStat(p.stats.gnomeDownloads)} downloads`, title: 'GNOME Extensions downloads (all-time)', icon: 'download' });
-if (p.stats.downloadsAllTime !== undefined && p.stats.downloadsAllTime > 0)
-  stats.push({ text: `${formatStat(p.stats.downloadsAllTime)} downloads`, title: 'npm downloads (all-time)', icon: 'download' });
-if (p.stats.downloadsMonthly !== undefined && p.stats.downloadsMonthly > 0)
-  stats.push({ text: `${formatStat(p.stats.downloadsMonthly)}/mo`, title: 'npm downloads in the last 30 days', icon: 'download' });
-const cardSources = p.sources ?? [p.source];
+const st = p.stats;
+if (st.stars && st.stars > 0)
+  stats.push({ text: `★ ${formatStat(st.stars)}`, title: 'Stars (GitHub + Docker Hub)' });
+if (st.users && st.users > 0)
+  stats.push({ text: `${formatStat(st.users)} weekly users`, title: 'Weekly active users (Chrome Web Store)', icon: 'users' });
+if (st.downloads && st.downloads > 0)
+  stats.push({ text: `${formatStat(st.downloads)} downloads`, title: 'Downloads / pulls (npm, Docker, GNOME, mirrors)', icon: 'download' });
+if (st.downloadsMonthly && st.downloadsMonthly > 0)
+  stats.push({ text: `${formatStat(st.downloadsMonthly)}/mo`, title: 'npm downloads in the last 30 days', icon: 'download' });
+if (st.installs && st.installs.value > 0)
+  stats.push({
+    text: `${formatStat(st.installs.value)}${st.installs.exact ? '' : '+'} installs`,
+    title: st.installs.exact
+      ? 'Google Play installs (Play Console total)'
+      : 'Google Play installs ("10,000+" tier)',
+    icon: 'download',
+  });
+if (st.rating && st.rating.count)
+  stats.push({ text: `${st.rating.average.toFixed(1)}★ (${formatStat(st.rating.count)})`, title: 'Store rating (number of ratings)' });
 
-// Friendly chip labels, deduped — so an AppBrain+APKPure card shows one
-// "Android app" chip rather than two raw source keys.
+// Friendly chip labels, deduped — e.g. a google-play + apkpure card shows one
+// "Android app" chip rather than two raw platform keys.
 const seenSourceLabels = new Set<string>();
-const sourceChips: { s: ProjectSource; label: string }[] = [];
-for (const s of cardSources) {
+const sourceChips: { s: string; label: string }[] = [];
+for (const s of p.sources) {
   const label = sourceLabel(s);
   if (seenSourceLabels.has(label)) continue;
   seenSourceLabels.add(label);
   sourceChips.push({ s, label });
 }
 
-if (p.stats.installs !== undefined && p.stats.installs > 0) {
-  // AppBrain supplies installs (Google Play); APKPure only when an app isn't on
-  // AppBrain. The "+" appears only for the approximate "10,000+" Play tier —
-  // exact counts (Play Console override, APKPure mirror) show no "+".
-  const fromPlay = cardSources.includes('appbrain');
-  const n = formatStat(p.stats.installs);
-  stats.push({
-    text: fromPlay ? `${n}${p.installsExact ? '' : '+'} installs` : `${n} downloads`,
-    title: fromPlay
-      ? p.installsExact
-        ? 'Google Play installs (Play Console total)'
-        : 'Google Play installs (10,000+ tier)'
-      : 'APKPure downloads',
-    icon: 'download',
-  });
-}
-if (p.stats.rating !== undefined && p.stats.ratingCount) {
-  const ratingStore = cardSources.includes('chrome') ? 'Chrome Web Store' : 'Google Play';
-  stats.push({ text: `${p.stats.rating.toFixed(1)}★ (${formatStat(p.stats.ratingCount)})`, title: `${ratingStore} rating (number of ratings)` });
-}
-
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
 
-// Only badge open-source when the source chip doesn't already imply it
-// (github/npm are open-source by nature). Keeps the badge a signal, not noise.
-const showOssBadge = !!p.openSource && p.source !== 'github' && p.source !== 'npm';
+// Only badge open-source when no source chip already implies it.
+const showOssBadge = !!p.openSource && !p.sources.includes('github') && !p.sources.includes('npm');
 
 // Project's own website, if it has one distinct from its listing URL.
 const homepage = p.homepage && p.homepage !== p.url ? p.homepage : null;
 const homepageHost = homepage ? homepage.replace(/^https?:\/\//, '').replace(/\/$/, '') : null;
 ---
-<article class={`card card--${size}`} data-tags={p.tags.join(',')} data-source={p.source}>
+<article class={`card card--${size}`} data-tags={p.tags.join(',')} data-source={p.sources.join(' ')}>
   <ProjectThumb project={p} />
   <header class="card-head">
     <a class="card-title" href={p.url} rel="noopener" target="_blank">

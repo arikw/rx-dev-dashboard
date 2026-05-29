@@ -1,5 +1,5 @@
 import type { Connector } from './types';
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 import { loadFixture, isPlaceholderHandle } from '../lib/fixtures';
 import {
   readNpmCache,
@@ -188,23 +188,24 @@ export const fetchNpmProjects: Connector = async (config, options) => {
 
   writeNpmCache(cache);
 
-  return enriched.map<Project>(({ entry, monthly, allTime, firstYear }) => ({
-    id: `npm:${entry.package.name}`,
-    source: 'npm',
-    title: entry.package.name,
-    description: entry.package.description ?? '',
-    url: entry.package.links.npm,
-    homepage: entry.package.links.homepage,
-    tags: entry.package.keywords ?? [],
-    stats: {
-      ...(monthly != null ? { downloadsMonthly: monthly } : {}),
-      downloadsAllTime: allTime,
+  return enriched.map<ConnectorResult>(({ entry, monthly, allTime, firstYear }) => ({
+    // npm registry is the origin. All-time → canonical `downloads`.
+    origin: {
+      platform: 'npm',
+      id: entry.package.name,
+      url: entry.package.links.npm,
+      asOf: entry.package.date,
+      title: entry.package.name,
+      description: entry.package.description ?? '',
+      firstReleased: firstYear,
+      tags: entry.package.keywords ?? [],
+      kind: 'package',
+      openSource: true,
+      homepage: entry.package.links.homepage,
+      stats: {
+        downloads: allTime,
+        ...(monthly != null ? { downloadsMonthly: monthly } : {}),
+      },
     },
-    updatedAt: entry.package.date,
-    year: firstYear,
-    kind: 'package',
-    openSource: true,
-    featured: false,
-    hasDetail: false,
   }));
 };

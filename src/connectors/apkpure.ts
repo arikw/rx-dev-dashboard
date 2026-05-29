@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import type { Connector } from './types';
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 import { loadFixture } from '../lib/fixtures';
 import { readJsonCache, writeJsonCache } from '../lib/json-cache';
 
@@ -147,12 +147,6 @@ async function scrapeApp(pkg: string): Promise<ApkpureApp | null> {
   };
 }
 
-/** "net.wzmn.games.brokencalc" → "brokencalc" (slug + name-merge key). */
-function lastSegment(pkg: string): string {
-  const parts = pkg.split('.');
-  return parts[parts.length - 1] || pkg;
-}
-
 export const fetchApkpureProjects: Connector = async (config, options) => {
   const packages = config.sources.gplay.packages;
   if (!packages.length) return [];
@@ -174,25 +168,33 @@ export const fetchApkpureProjects: Connector = async (config, options) => {
   return packages
     .map((p) => cache.apps[p])
     .filter((a): a is ApkpureApp => !!a)
-    .map<Project>((a) => ({
-      id: `apkpure:${lastSegment(a.packageName)}`,
-      source: 'apkpure',
-      title: a.title,
-      description: a.description ?? '',
-      url: a.url,
-      tags: ['android'],
-      stats: {
-        ...(a.rating != null ? { rating: a.rating } : {}),
-        ...(a.ratingCount != null ? { ratingCount: a.ratingCount } : {}),
-        ...(a.downloads != null ? { installs: a.downloads } : {}),
+    .map<ConnectorResult>((a) => ({
+      // Identity of the Play resource APKPure describes.
+      origin: { platform: 'google-play', id: a.packageName },
+      // Replicated origin data (the Play rating APKPure shows).
+      mirror: {
+        platform: 'apkpure',
+        url: a.url,
+        title: a.title,
+        description: a.description ?? '',
+        tags: ['android'],
+        kind: 'mobile',
+        stats: {
+          ...(a.rating != null && a.ratingCount != null
+            ? { rating: { average: a.rating, count: a.ratingCount } }
+            : {}),
+        },
       },
-      // APKPure's mirror download count is an exact number (not a tier floor).
-      installsExact: a.downloads != null ? true : undefined,
-      image: a.image,
-      year: a.year,
-      kind: 'mobile',
-      openSource: false,
-      featured: false,
-      hasDetail: false,
+      // APKPure's own channel: its mirror download count + the image it hosts.
+      // `downloads` here are APKPure's own (summed, not reconciled with Play).
+      native: {
+        platform: 'apkpure',
+        url: a.url,
+        firstReleased: a.year,
+        image: a.image,
+        stats: {
+          ...(a.downloads != null ? { downloads: a.downloads } : {}),
+        },
+      },
     }));
 };

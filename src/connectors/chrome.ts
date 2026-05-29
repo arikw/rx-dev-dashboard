@@ -1,5 +1,5 @@
 import type { Connector } from './types';
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 import { loadFixture } from '../lib/fixtures';
 
 type ChromeExtension = {
@@ -102,22 +102,22 @@ export const fetchChromeProjects: Connector = async (config, options) => {
   const results = await Promise.all(ids.map((id) => scrapeOne(id)));
   const valid = results.filter((r): r is ChromeExtension => r !== null);
 
-  return valid.map<Project>((ext) => ({
-    id: `chrome:${ext.id}`,
-    source: 'chrome',
-    title: ext.title,
-    description: ext.description,
-    url: ext.url,
-    tags: ['chrome-extension'],
-    stats: {
-      users: ext.users,
-      rating: ext.rating,
-      ratingCount: ext.ratingCount,
+  return valid.map<ConnectorResult>((ext) => ({
+    // Chrome Web Store is the origin (it hosts the extension).
+    origin: {
+      platform: 'chrome',
+      id: ext.id,
+      url: ext.url,
+      title: ext.title,
+      description: ext.description,
+      tags: ['chrome-extension'],
+      kind: 'extension',
+      stats: {
+        ...(ext.users != null ? { users: ext.users } : {}),
+        ...(ext.rating != null && ext.ratingCount != null
+          ? { rating: { average: ext.rating, count: ext.ratingCount } }
+          : {}),
+      },
     },
-    kind: 'extension',
-    // openSource is set by the cross-source pass when a matching github
-    // repo (by normalized name/title) exists.
-    featured: false,
-    hasDetail: false,
   }));
 };

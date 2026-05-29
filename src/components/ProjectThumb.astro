@@ -16,16 +16,18 @@ function hashHue(seed: string): number {
   return Math.abs(h) % 360;
 }
 
-const SOURCE_GLYPH: Record<Project['source'], string> = {
+const SOURCE_GLYPH: Record<string, string> = {
   github: 'GH',
   npm: 'np',
   docker: 'dh',
   chrome: 'cx',
   gnome: 'gn',
+  'google-play': '▸',
   appbrain: '▸',
   apkpure: '▸',
   manual: '·',
 };
+const primary = p.sources[0] ?? 'manual';
 
 const hue = hashHue(p.id);
 const bgA = `hsl(${hue}, 16%, 19%)`;
@@ -73,7 +75,7 @@ const shortTitle =
         font-size="11"
         fill={fg}
         opacity="0.7"
-      >{SOURCE_GLYPH[p.source]} · {sourceLabel(p.source)}</text>
+      >{SOURCE_GLYPH[primary] ?? '·'} · {sourceLabel(primary)}</text>
     </svg>
   )}
 </div>

@@ -1,5 +1,5 @@
 import type { Connector } from './types';
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 import { loadFixture, isPlaceholderHandle } from '../lib/fixtures';
 
 type DockerRepo = {
@@ -43,23 +43,20 @@ export const fetchDockerProjects: Connector = async (config, options) => {
   const all = await fetchAllDockerRepos(handle);
   const picked = explicit.size > 0 ? all.filter((r) => explicit.has(r.name)) : all;
 
-  return picked.map<Project>((r) => ({
-    id: `docker:${r.namespace}/${r.name}`,
-    source: 'docker',
-    title: `${r.namespace}/${r.name}`,
-    description: r.description ?? '',
-    url: `https://hub.docker.com/r/${r.namespace}/${r.name}`,
-    tags: ['docker'],
-    stats: {
-      pulls: r.pull_count,
-      dockerStars: r.star_count,
+  return picked.map<ConnectorResult>((r) => ({
+    // Docker Hub is the origin. "pulls" → canonical `downloads`; Docker stars
+    // → canonical `stars` (summed with GitHub stars if merged).
+    origin: {
+      platform: 'docker',
+      id: `${r.namespace}/${r.name}`,
+      url: `https://hub.docker.com/r/${r.namespace}/${r.name}`,
+      asOf: r.last_updated,
+      title: `${r.namespace}/${r.name}`,
+      description: r.description ?? '',
+      firstReleased: r.date_registered ? new Date(r.date_registered).getUTCFullYear() : undefined,
+      tags: ['docker'],
+      kind: 'image',
+      stats: { downloads: r.pull_count, stars: r.star_count },
     },
-    updatedAt: r.last_updated,
-    year: r.date_registered ? new Date(r.date_registered).getUTCFullYear() : undefined,
-    kind: 'image',
-    // openSource is set by the cross-source pass in load-projects when a
-    // matching github repo of the same name exists.
-    featured: false,
-    hasDetail: false,
   }));
 };

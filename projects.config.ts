@@ -68,17 +68,17 @@ const config: ProjectsConfig = {
     apkpure: { enabled: true },    // Google Play listing presence via APKPure
   },
 
-  // Builder-level overrides, keyed by a project's snapshot-entry id (look it up
-  // in generated/snapshot.json — e.g. "appbrain:my-app", "docker:me/my-image",
-  // a GitHub repo name). Connectors write raw data to the snapshot; these
-  // patches correct a value at build time that a connector can't get right.
-  // Each patch is a subset of the project's stats, plus an optional
-  // `installsExact` (true = exact count, drops the "+"; false = approximate
-  // floor like "10,000+", keeps the "+").
-  overrides: {
+  // Manual authoritative facts, keyed by ORIGIN resource id (find it in
+  // generated/snapshot.json — e.g. "google-play:net.example.myapp", a GitHub
+  // repo name, "npm:my-pkg"). Injected as an `origin` representation that wins
+  // reconciliation over scraped mirrors — e.g. an exact Play Console install
+  // total a connector can't reach.
+  origins: {
     // Example:
-    // 'appbrain:my-app':    { installs: 16522, installsExact: true },
-    // 'docker:me/my-image': { pulls: 50000 },
+    // 'google-play:net.example.myapp': {
+    //   asOf: '2024-01-01',
+    //   stats: { installs: { value: 16522, exact: true } },
+    // },
   },
 
   // Project slugs to pin at the top of the page. Works for any source:

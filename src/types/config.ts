@@ -1,10 +1,14 @@
-import type { ProjectStats } from './project';
+import type { CanonicalStats } from './project';
 
-/** A builder-level patch applied to a project's snapshot entry by id. It's a
- * subset of that project's stats, plus `installsExact` to mark an overridden
- * install count as exact (`true`, drops the "+") or an approximate floor
- * (`false`, keeps the "+"). */
-export type ProjectOverride = Partial<ProjectStats> & { installsExact?: boolean };
+/** A manual, authoritative origin fact injected by the builder, keyed by origin
+ * resource id (e.g. "google-play:net.wzmn.games.brokencalc"). It enters the
+ * reconcile as an `origin` representation, so it wins over scraped mirrors —
+ * e.g. an exact Play Console install total the connectors can't reach. */
+export type ManualOrigin = {
+  url?: string;
+  asOf?: string;
+  stats?: CanonicalStats;
+};
 
 export type ManualProject = {
   slug: string;
@@ -116,11 +120,11 @@ export type ProjectsConfig = {
     /** Tag names to exclude entirely (case-insensitive). */
     exclude?: string[];
   };
-  /** Builder-level overrides, keyed by a project's snapshot-entry id
-   * (e.g. "appbrain:brokencalc"). The connectors write raw data to the
-   * snapshot; these patches are applied at build time — e.g. an exact Play
-   * Console install total the connectors can't reach. See {@link ProjectOverride}. */
-  overrides?: Record<string, ProjectOverride>;
+  /** Manual authoritative facts, keyed by origin resource id
+   * (e.g. "google-play:net.wzmn.games.brokencalc"). Injected as an `origin`
+   * representation that wins reconciliation over scraped mirrors — e.g. an
+   * exact Play Console install total. See {@link ManualOrigin}. */
+  origins?: Record<string, ManualOrigin>;
   /** Project slugs to pin at the top of the page. */
   featured: string[];
   /** Projects without an online source (closed-source, retired, etc.). */

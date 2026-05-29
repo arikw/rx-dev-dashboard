@@ -21,9 +21,9 @@ const featured = allProjects
 function signal(p: (typeof allProjects)[number]): number {
   return (
     (p.stats.stars ?? 0) +
-    (p.stats.pulls ?? 0) +
-    (p.stats.users ?? 0) +
-    (p.stats.downloadsMonthly ?? 0)
+    (p.stats.downloads ?? 0) +
+    (p.stats.installs?.value ?? 0) +
+    (p.stats.users ?? 0)
   );
 }
 

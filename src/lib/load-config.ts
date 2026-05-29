@@ -31,7 +31,7 @@ function mergeConfig(base: ProjectsConfig, override?: ProjectsConfig): ProjectsC
       ...override.ui,
       hero: { ...base.ui.hero, ...override.ui?.hero },
     },
-    overrides: { ...base.overrides, ...override.overrides },
+    origins: { ...base.origins, ...override.origins },
   };
 }
 

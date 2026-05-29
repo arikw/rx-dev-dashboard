@@ -1,4 +1,4 @@
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 import type { ProjectsConfig } from '../types/config';
 
 export type ConnectorOptions = {
@@ -9,4 +9,4 @@ export type ConnectorOptions = {
 export type Connector = (
   config: ProjectsConfig,
   options?: ConnectorOptions,
-) => Promise<Project[]>;
+) => Promise<ConnectorResult[]>;

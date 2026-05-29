@@ -1,4 +1,4 @@
-import type { Project, ProjectKind } from '../types/project';
+import type { ConnectorResult, ProjectKind } from '../types/project';
 import type { ProjectsConfig } from '../types/config';
 
 const VALID_KINDS = new Set<ProjectKind>([
@@ -18,21 +18,22 @@ function normalizeKind(raw?: string): ProjectKind | undefined {
   return VALID_KINDS.has(k as ProjectKind) ? (k as ProjectKind) : 'other';
 }
 
-export function manualToProjects(config: ProjectsConfig): Project[] {
+/** Manual entries become `manual`-platform origins. */
+export function manualToResults(config: ProjectsConfig): ConnectorResult[] {
   return config.manual.map((m) => ({
-    id: m.slug,
-    source: 'manual' as const,
-    title: m.title,
-    description: m.description,
-    url: m.url ?? '',
-    tags: m.tags ?? [],
-    stats: {},
-    language: m.language,
-    year: m.year,
-    kind: normalizeKind(m.kind),
-    openSource: m.openSource ?? !!m.sourceUrl,
-    sourceUrl: m.sourceUrl,
-    featured: m.featured ?? false,
-    hasDetail: false, // set by loader after content collection lookup
+    origin: {
+      platform: 'manual',
+      id: m.slug,
+      url: m.url,
+      title: m.title,
+      description: m.description,
+      firstReleased: m.year,
+      tags: m.tags ?? [],
+      language: m.language,
+      kind: normalizeKind(m.kind),
+      openSource: m.openSource ?? !!m.sourceUrl,
+      sourceUrl: m.sourceUrl,
+      stats: {},
+    },
   }));
 }

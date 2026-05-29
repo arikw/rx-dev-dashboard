@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { Project } from '../types/project';
+import type { ConnectorResult } from '../types/project';
 
-export function loadFixture(source: string): Project[] {
+export function loadFixture(source: string): ConnectorResult[] {
   const path = resolve(process.cwd(), 'tests/fixtures', `${source}.json`);
   try {
-    return JSON.parse(readFileSync(path, 'utf8')) as Project[];
+    return JSON.parse(readFileSync(path, 'utf8')) as ConnectorResult[];
   } catch {
     return [];
   }

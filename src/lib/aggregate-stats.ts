@@ -1,13 +1,12 @@
 import type { Project } from '../types/project';
 
 export type HeroStats = {
-  /** GitHub stars + Docker Hub stars + "likes" = positive (4–5★) app ratings. */
+  /** Stars (GitHub + Docker, summed) + "likes" = positive (4–5★) app ratings. */
   starsAndLikes: number;
   /**
-   * Cumulative install/fetch events: npm all-time downloads + Docker pulls +
-   * GNOME extension downloads + Google Play installs. These are event counts
-   * (CI inflates npm/Docker), not unique people — kept separate from a
-   * headcount on purpose.
+   * Cumulative acquisition: `downloads` (npm/Docker/GNOME/mirror fetch events) +
+   * Google Play `installs`. Event counts (CI inflates npm/Docker), not a
+   * current headcount — kept separate from active users on purpose.
    */
   downloadsAndPulls: number;
   /** Chrome Web Store current users — a point-in-time install headcount. */
@@ -25,21 +24,14 @@ export function aggregateStats(projects: Project[]): HeroStats {
   let openSourceCount = 0;
 
   for (const p of projects) {
-    // Non-manual sources are open-source by default, except entries flagged
-    // explicitly closed (e.g. a retired Google Play app) — those are portfolio.
-    if (p.source !== 'manual' && p.openSource !== false) openSourceCount++;
+    if (p.openSource) openSourceCount++;
 
-    // "Likes" = genuinely positive ratings: only 4★ and 5★ count, not the raw
-    // rating count (which includes 1–2★ complaints).
-    const h = p.stats.ratingHistogram;
+    // "Likes" = genuinely positive ratings: only 4★ and 5★ count.
+    const h = p.stats.rating?.histogram;
     const likes = h && h.length >= 5 ? num(h[3]) + num(h[4]) : 0;
-    starsAndLikes += num(p.stats.stars) + num(p.stats.dockerStars) + likes;
+    starsAndLikes += num(p.stats.stars) + likes;
 
-    downloadsAndPulls +=
-      num(p.stats.downloadsAllTime) +
-      num(p.stats.pulls) +
-      num(p.stats.gnomeDownloads) +
-      num(p.stats.installs);
+    downloadsAndPulls += num(p.stats.downloads) + num(p.stats.installs?.value);
 
     activeUsers += num(p.stats.users);
   }
