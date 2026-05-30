@@ -3,11 +3,36 @@ interface Props {
   value: string;
   label: string;
   sublabel?: string;
+  /** Same keys as ProjectCard's stat-icon — keeps the hero stats and the
+   *  card stats visually aligned so the hero acts as a legend. */
+  icon?: 'star' | 'download' | 'users' | 'projects';
 }
-const { value, label, sublabel } = Astro.props;
+const { value, label, sublabel, icon } = Astro.props;
 ---
 <div class="stat">
   <div class="stat-value">{value}</div>
-  <div class="stat-label">{label}</div>
+  <div class="stat-label">
+    {icon === 'star' && (
+      <svg class="stat-label-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+      </svg>
+    )}
+    {icon === 'download' && (
+      <svg class="stat-label-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z" />
+      </svg>
+    )}
+    {icon === 'users' && (
+      <svg class="stat-label-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+      </svg>
+    )}
+    {icon === 'projects' && (
+      <svg class="stat-label-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M3 5h7l2 2h9v12H3V5zm2 2v10h14V9h-7.83l-2-2H5z" />
+      </svg>
+    )}
+    <span>{label}</span>
+  </div>
   {sublabel && <div class="stat-sublabel">{sublabel}</div>}
 </div>

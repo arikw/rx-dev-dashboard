@@ -36,12 +36,14 @@ const lastUpdatedIso = lastUpdated
   <h1 class="hero-title">{config.meta.siteTitle}</h1>
   <div class="hero-stats">
     <Stat
+      icon="star"
       value={`${formatStat(stats.starsAndLikes)}+`}
       label="Stars & likes"
       sublabel={`across ${stats.openSourceCount} open-source ${stats.openSourceCount === 1 ? 'project' : 'projects'}`}
     />
     {config.ui.hero.showDownloads && stats.downloadsAndPulls > 0 && (
       <Stat
+        icon="download"
         value={`${formatStat(stats.downloadsAndPulls)}+`}
         label="Downloads & pulls"
         sublabel="cumulative install events — npm, Docker, GNOME, Google Play"
@@ -49,12 +51,14 @@ const lastUpdatedIso = lastUpdated
     )}
     {config.ui.hero.showUsers && stats.activeUsers > 0 && (
       <Stat
+        icon="users"
         value={`${formatStat(stats.activeUsers)}+`}
         label="Active users"
         sublabel="current Chrome Web Store installs"
       />
     )}
     <Stat
+      icon="projects"
       value={String(stats.totalProjects)}
       label="Projects shipped"
       sublabel={`${stats.openSourceCount} open-source · ${portfolioCount} portfolio`}
