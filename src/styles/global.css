@@ -289,9 +289,9 @@ button {
 }
 .thumb-icon-overlay {
   position: absolute;
-  left: 14px;
+  left: 50%;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
   width: 56px;
   height: 56px;
   object-fit: contain;
