@@ -43,6 +43,8 @@ if (st.installs && st.installs.value > 0)
   });
 if (st.rating && st.rating.count)
   stats.push({ text: `${st.rating.average.toFixed(1)}★ (${formatStat(st.rating.count)})`, title: 'Store rating (number of ratings)' });
+if (p.year)
+  stats.push({ text: `since ${p.year}`, title: `First released in ${p.year}` });
 
 // Friendly chip labels, deduped — e.g. a google-play + apkpure card shows one
 // "Android app" chip rather than two raw platform keys.
@@ -57,9 +59,6 @@ for (const s of p.sources) {
 
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
 
-// Project's own website, if it has one distinct from its listing URL.
-const homepage = p.homepage && p.homepage !== p.url ? p.homepage : null;
-const homepageHost = homepage ? homepage.replace(/^https?:\/\//, '').replace(/\/$/, '') : null;
 ---
 <article
   class={`card card--${size}`}
@@ -79,21 +78,6 @@ const homepageHost = homepage ? homepage.replace(/^https?:\/\//, '').replace(/\/
       ))}
     </span>
   </header>
-
-  {(homepage || p.year) && (
-    <p class="card-badges">
-      {p.year && <span class="card-badge card-badge--year">since {p.year}</span>}
-      {homepage && (
-        <a
-          class="card-badge card-badge--site"
-          href={homepage}
-          target="_blank"
-          rel="noopener"
-          title={homepage}
-        >{homepageHost} ↗</a>
-      )}
-    </p>
-  )}
 
   {p.description && <p class="card-desc">{p.description}</p>}
 
