@@ -214,7 +214,7 @@ button {
 .thumb {
   position: relative;
   width: 100%;
-  aspect-ratio: 320 / 84;
+  aspect-ratio: 16 / 6;
   background: var(--border);
   overflow: hidden;
   border-bottom: 1px solid var(--border);
