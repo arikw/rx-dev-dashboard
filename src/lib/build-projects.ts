@@ -263,6 +263,18 @@ function buildProject(group: ConnectorResult[]): Project {
     return (b.asOf ?? '') > (a.asOf ?? '') ? 1 : -1;
   });
 
+  // For the *title* specifically, prefer the product/package name (chrome
+  // extension's CWS title, npm package name, etc.) over the github repo
+  // slug. A repo named `chrome-extensions-reloader` should display as
+  // "Extensions Reloader" if it's merged with its CWS rep. Github moves to
+  // last; everything else keeps its normal ordering.
+  const titleRank = (p: string): number => (p === 'github' ? 99 : rankOf(p));
+  const orderedForTitle = [...allReps].sort((a, b) => {
+    const r = titleRank(a.platform) - titleRank(b.platform);
+    if (r !== 0) return r;
+    return (b.asOf ?? '') > (a.asOf ?? '') ? 1 : -1;
+  });
+
   const slug = (() => {
     const id = primary.id ?? primary.title ?? 'project';
     const seg = id.includes('/') ? id.split('/').pop()! : id;
@@ -291,7 +303,7 @@ function buildProject(group: ConnectorResult[]): Project {
   return {
     id: slug,
     sources: [...livePlatforms],
-    title: primary.title ?? firstField(ordered, (r) => r.title) ?? slug,
+    title: firstField(orderedForTitle, (r) => r.title) ?? slug,
     description: firstField(ordered, (r) => r.description) ?? '',
     url: primary.url ?? firstField(ordered, (r) => r.url) ?? '',
     tags,
