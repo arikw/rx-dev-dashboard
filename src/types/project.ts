@@ -114,6 +114,11 @@ export type Project = {
   /** Distinct platforms the project lives on (for source chips) — origin +
    * native platforms, e.g. ['github'] or ['google-play','apkpure']. */
   sources: string[];
+  /** Per source-group URL for clickable source chips. For chrome the live
+   * CWS listing wins; falls back to the chrome-stats mirror page when the
+   * extension's been removed. Keyed by source-group (e.g. 'chrome',
+   * 'android', 'github', 'npm'), not the raw rep platform. */
+  sourceUrls: Record<string, string>;
   title: string;
   description: string;
   /** Outbound link (origin/primary). */

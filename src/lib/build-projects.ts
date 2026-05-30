@@ -60,6 +60,22 @@ const PLATFORM_RANK: Record<string, number> = {
 };
 const rankOf = (p: string): number => PLATFORM_RANK[p] ?? 99;
 
+// Map a rep's platform key to its user-facing "source-group" — for chip
+// labels and per-source URL resolution. Origins and their mirrors map to the
+// same group, so a chrome card whose CWS listing is dead can still resolve
+// CHROME → chrome-stats.com via the mirror.
+const PLATFORM_TO_SOURCE_GROUP: Record<string, string> = {
+  github: 'github',
+  npm: 'npm',
+  docker: 'docker',
+  gnome: 'gnome',
+  chrome: 'chrome',
+  'chrome-stats': 'chrome',
+  'google-play': 'android',
+  apkpure: 'android',
+  appbrain: 'android',
+};
+
 function canonUrl(u?: string): string | null {
   if (!u) return null;
   const c = u
@@ -288,6 +304,20 @@ function buildProject(group: ConnectorResult[]): Project {
     if (r.native) livePlatforms.add(r.native.platform);
   }
 
+  // Per source-group URL — first rep with a url wins, ordered by
+  // platform rank (so origins beat mirrors but mirrors still provide a
+  // usable URL when the origin is dead/removed).
+  const repsByPlatformRank = [...allReps].sort(
+    (a, b) => rankOf(a.platform) - rankOf(b.platform),
+  );
+  const sourceUrls: Record<string, string> = {};
+  for (const rep of repsByPlatformRank) {
+    if (!rep.url) continue;
+    const groupKey = PLATFORM_TO_SOURCE_GROUP[rep.platform];
+    if (!groupKey) continue;
+    if (!sourceUrls[groupKey]) sourceUrls[groupKey] = rep.url;
+  }
+
   const tags = [...new Set(allReps.flatMap((r) => r.tags ?? []))];
   const years = allReps.map((r) => r.firstReleased).filter((y): y is number => typeof y === 'number');
   const updatedAts = allReps.map((r) => r.asOf).filter((u): u is string => !!u);
@@ -303,6 +333,7 @@ function buildProject(group: ConnectorResult[]): Project {
   return {
     id: slug,
     sources: [...livePlatforms],
+    sourceUrls,
     title: firstField(orderedForTitle, (r) => r.title) ?? slug,
     description: firstField(ordered, (r) => r.description) ?? '',
     url: primary.url ?? firstField(ordered, (r) => r.url) ?? '',

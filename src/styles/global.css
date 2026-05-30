@@ -389,6 +389,23 @@ button {
   color: var(--accent);
   font-weight: 600;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+a.card-source:hover {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(-1px);
+}
+.card-source-arrow {
+  font-size: 0.9em;
+  opacity: 0.7;
+  /* Slightly lift the arrow visually so it reads as adjacent to the label
+     instead of below the cap height. */
+  transform: translateY(-0.5px);
 }
 
 .card-desc {

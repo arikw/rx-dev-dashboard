@@ -47,14 +47,23 @@ if (p.year)
   stats.push({ text: String(p.year), title: `First released in ${p.year}`, icon: 'calendar' });
 
 // Friendly chip labels, deduped — e.g. a google-play + apkpure card shows one
-// "Android app" chip rather than two raw platform keys.
+// "Android app" chip rather than two raw platform keys. Each chip resolves
+// to a clickable URL via project.sourceUrls (origin URL preferred, mirror
+// URL as fallback when the origin is removed).
+const SOURCE_TO_GROUP: Record<string, string> = {
+  github: 'github', npm: 'npm', docker: 'docker',
+  gnome: 'gnome', chrome: 'chrome',
+  'google-play': 'android', apkpure: 'android', appbrain: 'android',
+};
 const seenSourceLabels = new Set<string>();
-const sourceChips: { s: string; label: string }[] = [];
+const sourceChips: { s: string; label: string; href?: string }[] = [];
 for (const s of p.sources) {
   const label = sourceLabel(s);
   if (seenSourceLabels.has(label)) continue;
   seenSourceLabels.add(label);
-  sourceChips.push({ s, label });
+  const group = SOURCE_TO_GROUP[s];
+  const href = group ? p.sourceUrls?.[group] : undefined;
+  sourceChips.push({ s, label, href });
 }
 
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
@@ -70,11 +79,20 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
   <header class="card-head">
     <a class="card-title" href={p.url} rel="noopener" target="_blank">
       <h3>{p.title}</h3>
-      <span class="card-arrow" aria-hidden="true">↗</span>
     </a>
     <span class="card-sources">
-      {sourceChips.map(({ s, label }) => (
-        <span class={`card-source card-source--${s}`}>{label}</span>
+      {sourceChips.map(({ s, label, href }) => (
+        href ? (
+          <a
+            class={`card-source card-source--${s}`}
+            href={href}
+            target="_blank"
+            rel="noopener"
+            title={href}
+          >{label} <span class="card-source-arrow" aria-hidden="true">↗</span></a>
+        ) : (
+          <span class={`card-source card-source--${s}`}>{label}</span>
+        )
       ))}
     </span>
   </header>
