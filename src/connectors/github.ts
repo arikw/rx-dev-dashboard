@@ -58,15 +58,14 @@ type GithubRepo = {
   has_pages: boolean;
 };
 
-// GitHub Pages favicon cache. Once we've fetched a repo's pages site and
-// pulled its favicon URL, it's frozen — favicons rarely change, and a missing
-// favicon (`null`) is a stable answer too. Delete generated/github-pages.json
-// to force a refresh.
+// GitHub Pages cache. Once we've fetched a repo's pages site and pulled its
+// favicon URL + <title>, it's frozen — both rarely change. Delete
+// generated/github-pages.json to force a refresh.
 const PAGES_CACHE_PATH = 'generated/github-pages.json';
-type PagesEntry = { pagesUrl: string; favicon: string | null };
+type PagesEntry = { pagesUrl: string; favicon: string | null; title: string | null };
 type PagesCache = { version: 1; _generated: string; pages: Record<string, PagesEntry> };
 const PAGES_CACHE_NOTE =
-  'Auto-generated GitHub Pages favicons (fetched once per repo whose has_pages=true). Delete to refresh.';
+  'Auto-generated GitHub Pages meta (favicon + <title>), fetched once per repo whose has_pages=true. Delete to refresh.';
 const emptyPagesCache = (): PagesCache => ({ version: 1, _generated: PAGES_CACHE_NOTE, pages: {} });
 
 
@@ -89,14 +88,23 @@ async function isReachable(url: string): Promise<boolean> {
   } catch { return false; }
 }
 
-/** Fetch the given URL's HTML and extract its favicon, resolved as absolute.
- *  Returns null if nothing usable is found OR if the candidate URL doesn't
- *  actually resolve to a real resource (avoids caching 404 URLs).
- *
- *  Looks at (in order):
- *   - <link rel="icon|shortcut icon|apple-touch-icon|mask-icon" href="…">
- *   - <pages-url>favicon.ico convention. */
-async function fetchPagesFavicon(targetUrl: string): Promise<string | null> {
+/** Decode common HTML entities in title text. */
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
+/** Fetch the given URL's HTML once and extract:
+ *   - favicon: <link rel="icon|shortcut icon|apple-touch-icon|mask-icon">,
+ *     fallback to <pages-url>favicon.ico convention. Reachable URLs only.
+ *   - title:   <title>…</title>, trimmed and entity-decoded. */
+async function fetchPagesMeta(targetUrl: string): Promise<{ favicon: string | null; title: string | null }> {
   let html: string;
   try {
     const res = await fetch(targetUrl, {
@@ -106,12 +114,18 @@ async function fetchPagesFavicon(targetUrl: string): Promise<string | null> {
       },
       redirect: 'follow',
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { favicon: null, title: null };
     html = await res.text();
   } catch {
-    return null;
+    return { favicon: null, title: null };
   }
 
+  // ---- title ----
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const rawTitle = titleMatch?.[1]?.replace(/\s+/g, ' ').trim();
+  const title = rawTitle ? decodeHtmlEntities(rawTitle) : null;
+
+  // ---- favicon ----
   // Match <link rel="<one of icon variants>" href="..."> in either attribute
   // order. Crucially: capture href content based on its OPENING quote char
   // (backreference) — so single quotes inside a double-quoted data: URI (and
@@ -126,21 +140,20 @@ async function fetchPagesFavicon(targetUrl: string): Promise<string | null> {
     'is',
   );
   const href = html.match(relHref)?.[3] ?? html.match(hrefRel)?.[2];
+  let favicon: string | null = null;
   if (href) {
     try {
       const resolved = new URL(href, targetUrl).toString();
-      // data: URIs are inline so always "reachable"; HTTP(S) URLs need a check
-      // because static sites with custom base paths often link to a favicon
-      // path that 404s when fetched from the bare github.io URL.
-      if (resolved.startsWith('data:') || (await isReachable(resolved))) return resolved;
+      if (resolved.startsWith('data:') || (await isReachable(resolved))) favicon = resolved;
     } catch { /* fallthrough */ }
   }
-  // Last resort: <pages-url>/favicon.ico. Only return if it actually exists.
-  try {
-    const fallback = new URL('favicon.ico', targetUrl).toString();
-    if (await isReachable(fallback)) return fallback;
-  } catch { /* fallthrough */ }
-  return null;
+  if (!favicon) {
+    try {
+      const fallback = new URL('favicon.ico', targetUrl).toString();
+      if (await isReachable(fallback)) favicon = fallback;
+    } catch { /* fallthrough */ }
+  }
+  return { favicon, title };
 }
 
 async function fetchPage(user: string, page: number, token?: string): Promise<GithubRepo[]> {
@@ -209,11 +222,14 @@ export const fetchGithubProjects: Connector = async (config, options) => {
         const homepage = r.homepage?.trim();
         const targets = homepage && homepage !== pagesUrl ? [homepage, pagesUrl] : [pagesUrl];
         let favicon: string | null = null;
+        let title: string | null = null;
         for (const t of targets) {
-          favicon = await fetchPagesFavicon(t);
-          if (favicon) break;
+          const meta = await fetchPagesMeta(t);
+          if (!favicon && meta.favicon) favicon = meta.favicon;
+          if (!title && meta.title) title = meta.title;
+          if (favicon && title) break;
         }
-        return [r.name, { pagesUrl, favicon }] as const;
+        return [r.name, { pagesUrl, favicon, title }] as const;
       }),
     );
     for (const [name, entry] of results) pagesCache.pages[name] = entry;
@@ -236,7 +252,9 @@ export const fetchGithubProjects: Connector = async (config, options) => {
         id: r.name,
         url: r.html_url,
         asOf: r.updated_at,
-        title: r.name,
+        // For repos with Pages, prefer the rendered site's <title> over the
+        // raw repo slug — it's the name the author has chosen to present.
+        title: pagesEntry?.title || r.name,
         description: r.description ?? '',
         firstReleased: r.created_at ? new Date(r.created_at).getUTCFullYear() : undefined,
         tags: r.topics ?? [],
