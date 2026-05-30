@@ -404,7 +404,11 @@ button {
 }
 
 .card-stats {
-  margin: 4px 0 0;
+  /* Pin to the bottom of the card so stats line up across cards regardless
+     of how tall the description above them happens to be. */
+  margin-top: auto;
+  margin-bottom: 0;
+  padding-top: 8px;
   font-size: 0.85rem;
   color: var(--fg);
   font-feature-settings: 'tnum';

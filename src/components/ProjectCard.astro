@@ -22,7 +22,7 @@ const popularity =
   (p.stats.installs?.value ?? 0) +
   (p.stats.users ?? 0);
 
-type CardStat = { text: string; title: string; icon?: 'download' | 'users' };
+type CardStat = { text: string; title: string; icon?: 'download' | 'users' | 'calendar' };
 const stats: CardStat[] = [];
 const st = p.stats;
 if (st.stars && st.stars > 0)
@@ -44,7 +44,7 @@ if (st.installs && st.installs.value > 0)
 if (st.rating && st.rating.count)
   stats.push({ text: `${st.rating.average.toFixed(1)}★ (${formatStat(st.rating.count)})`, title: 'Store rating (number of ratings)' });
 if (p.year)
-  stats.push({ text: `since ${p.year}`, title: `First released in ${p.year}` });
+  stats.push({ text: String(p.year), title: `First released in ${p.year}`, icon: 'calendar' });
 
 // Friendly chip labels, deduped — e.g. a google-play + apkpure card shows one
 // "Android app" chip rather than two raw platform keys.
@@ -93,6 +93,11 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
           {s.icon === 'users' && (
             <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+          )}
+          {s.icon === 'calendar' && (
+            <svg class="stat-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
             </svg>
           )}
           {s.text}
