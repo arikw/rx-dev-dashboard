@@ -27,9 +27,10 @@ function signal(p: (typeof allProjects)[number]): number {
   );
 }
 
-const nonFeatured = allProjects
-  .filter((p) => !p.featured)
-  .sort((a, b) => signal(b) - signal(a));
+// "All projects" really shows all of them — featured ones get highlighted
+// in the row above but also appear here so the source-filter counts and
+// the popularity/year sort include the whole catalogue.
+const sortedAll = [...allProjects].sort((a, b) => signal(b) - signal(a));
 ---
 
 <BaseLayout
@@ -39,6 +40,6 @@ const nonFeatured = allProjects
   <Hero stats={stats} />
   {config.meta.siteAbout && <SiteAbout markdown={config.meta.siteAbout} />}
   <FeaturedRow projects={featured} />
-  <ProjectGrid projects={nonFeatured} pageSize={config.ui.pageSize} />
+  <ProjectGrid projects={sortedAll} pageSize={config.ui.pageSize} />
   {config.user.bio && <AuthorBio name={config.user.name} bio={config.user.bio} />}
 </BaseLayout>
