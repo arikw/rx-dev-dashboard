@@ -132,6 +132,9 @@ export type Project = {
   banner?: string;
   /** Square app/extension icon, when any rep supplies one. */
   icon?: string;
+  /** Dominant colour extracted from the icon — used as the icon-only thumb's
+   * backplate tint so each card's backdrop reflects its own art. */
+  iconColor?: string;
   /** All screenshots collected across origins/mirrors/natives. */
   screenshots?: string[];
   videos?: string[];

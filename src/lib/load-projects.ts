@@ -14,6 +14,7 @@ import { manualToResults } from '../connectors/manual';
 import { buildProjects } from './build-projects';
 import type { Connector } from '../connectors/types';
 import { readSnapshot, writeSnapshot, type ConnectorKey, type SnapshotFile } from './snapshot-store';
+import { resolveIconColors } from './icon-color';
 
 const FIXTURE_MODE = process.env.CONNECTORS_FIXTURE === '1';
 
@@ -97,6 +98,23 @@ async function loadOnce(): Promise<Project[]> {
   const all = [...connectorResults, ...manualToResults(config), ...manualOrigins()];
 
   const built = buildProjects(all);
+
+  // Extract a dominant colour for each icon-only card so its backplate
+  // reflects the icon. Banner / screenshot+icon stack cards already have
+  // foreground art that defines their colour; brand-mark cards have a brand
+  // colour. So we only need this for icon-only (no banner, no screenshots).
+  const iconUrlsForColor = built
+    .filter((p) => p.icon && !p.banner && !(p.screenshots && p.screenshots.length > 0))
+    .map((p) => p.icon!);
+  if (iconUrlsForColor.length) {
+    const colorByUrl = await resolveIconColors(iconUrlsForColor);
+    for (const p of built) {
+      if (p.icon) {
+        const c = colorByUrl.get(p.icon);
+        if (c) p.iconColor = c;
+      }
+    }
+  }
 
   // Which slugs have a matching MDX detail page?
   const detailEntries = await getCollection('projects').catch(() => []);

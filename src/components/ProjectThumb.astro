@@ -20,6 +20,12 @@ const hue = hashHue(p.id);
 const bgA = `hsl(${hue}, 16%, 19%)`;
 const bgB = `hsl(${(hue + 30) % 360}, 14%, 13%)`;
 const fg = `hsl(${hue}, 22%, 70%)`;
+// If we extracted a dominant colour from the icon at build time, derive the
+// backplate from it (mixed with a dark base for legibility). Otherwise fall
+// back to the deterministic hash-hue tint.
+const iconTint = p.iconColor
+  ? `linear-gradient(135deg, color-mix(in srgb, ${p.iconColor} 60%, #15181d 40%), color-mix(in srgb, ${p.iconColor} 32%, #15181d 68%))`
+  : `linear-gradient(135deg, ${bgA}, ${bgB})`;
 const tint = `linear-gradient(135deg, ${bgA}, ${bgB})`;
 
 // Pick layout from what's in each bucket. Connectors decide what kind of
@@ -95,7 +101,7 @@ const shortTitle =
       <img class="thumb-icon-overlay" src={icon} alt="" loading="lazy" />
     </div>
   ) : icon ? (
-    <div class="thumb-iconframe" style={`background: ${tint}`}>
+    <div class="thumb-iconframe" style={`background: ${iconTint}`}>
       <img class="thumb-icon-centered" src={icon} alt="" loading="lazy" />
     </div>
   ) : screenshot ? (
