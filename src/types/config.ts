@@ -71,11 +71,16 @@ export type AppbrainSourceConfig = { enabled: boolean };
 export type ApkpureSourceConfig = { enabled: boolean };
 
 /** chrome-stats.com — third-party Chrome Web Store mirror; carries extensions
- * that have been taken down from CWS and richer per-extension intel. */
-export type ChromeStatsSourceConfig = {
+ * that have been taken down from CWS and richer per-extension intel. Reads
+ * `sources.chrome.extensionIds` — one shared list, like AppBrain + APKPure
+ * sharing `sources.gplay.packages`. */
+export type ChromeStatsSourceConfig = { enabled: boolean };
+
+/** Google Play Store live listing — origin for apps that are still available. */
+export type PlaystoreSourceConfig = {
   enabled: boolean;
-  /** Chrome extension IDs to mirror. */
-  extensionIds: string[];
+  /** Android package names (e.g. "com.example.app"). */
+  packages: string[];
 };
 
 export type DeploymentConfig = {
@@ -119,6 +124,7 @@ export type ProjectsConfig = {
     appbrain: AppbrainSourceConfig;
     apkpure: ApkpureSourceConfig;
     chromestats: ChromeStatsSourceConfig;
+    playstore: PlaystoreSourceConfig;
   };
   /** Tag filter behaviour. */
   tags?: {

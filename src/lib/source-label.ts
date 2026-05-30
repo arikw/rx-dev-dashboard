@@ -10,6 +10,7 @@ export const SOURCE_LABEL: Record<string, string> = {
   'google-play': 'Android app',
   appbrain: 'Android app',
   apkpure: 'Android app',
+  playstore: 'Android app',
   'chrome-stats': 'Chrome',
   manual: 'Portfolio',
 };

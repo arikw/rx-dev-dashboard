@@ -180,6 +180,7 @@ export const fetchAppbrainProjects: Connector = async (config, options) => {
       // tier (a floor); a manual origin (Play Console) outranks it in reconcile.
       mirror: {
         platform: 'appbrain',
+        id: a.packageName,
         url: a.url,
         title: a.title,
         description: a.description ?? '',

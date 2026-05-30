@@ -1,6 +1,18 @@
-import type { Connector } from './types';
+import type { Connector, UrlIdExtractor } from './types';
 import type { ConnectorResult } from '../types/project';
 import { loadFixture } from '../lib/fixtures';
+
+/** Recognise both the legacy `chrome.google.com/webstore/detail/<slug>/<id>`
+ * and the new `chromewebstore.google.com/detail/<slug?>/<id>` URLs. */
+export const urlExtractors: UrlIdExtractor[] = [
+  {
+    hostnames: ['chrome.google.com', 'chromewebstore.google.com'],
+    extract: (url) => {
+      const m = url.pathname.match(/\/detail\/(?:[^/]+\/)?([a-p]{32})/);
+      return m ? { platform: 'chrome', id: m[1] } : null;
+    },
+  },
+];
 
 type ChromeExtension = {
   id: string;

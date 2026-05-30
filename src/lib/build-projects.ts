@@ -5,6 +5,48 @@ import type {
   ProjectKind,
   Representation,
 } from '../types/project';
+import type { UrlIdExtractor } from '../connectors/types';
+import { urlExtractors as githubExt } from '../connectors/github';
+import { urlExtractors as npmExt } from '../connectors/npm';
+import { urlExtractors as dockerExt } from '../connectors/docker';
+import { urlExtractors as chromeExt } from '../connectors/chrome';
+import { urlExtractors as gnomeExt } from '../connectors/gnome';
+import { urlExtractors as playstoreExt } from '../connectors/playstore';
+
+const ALL_EXTRACTORS: UrlIdExtractor[] = [
+  ...githubExt,
+  ...npmExt,
+  ...dockerExt,
+  ...chromeExt,
+  ...gnomeExt,
+  ...playstoreExt,
+];
+
+const EXTRACTOR_BY_HOST = new Map<string, UrlIdExtractor>();
+for (const ex of ALL_EXTRACTORS) for (const h of ex.hostnames) EXTRACTOR_BY_HOST.set(h, ex);
+
+function tryExtractId(rawUrl?: string): { platform: string; id: string } | null {
+  if (!rawUrl) return null;
+  try {
+    const u = new URL(rawUrl);
+    const ex = EXTRACTOR_BY_HOST.get(u.hostname);
+    return ex ? ex.extract(u) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Every (platform, id) the builder can derive from a result's URLs. */
+function derivedOriginKeys(r: ConnectorResult): string[] {
+  const out = new Set<string>();
+  for (const rep of repsOf(r)) {
+    for (const u of [rep.homepage, rep.sourceUrl, rep.url]) {
+      const x = tryExtractId(u);
+      if (x) out.add(`${x.platform}:${x.id}`);
+    }
+  }
+  return [...out];
+}
 
 // Preference for choosing a project's canonical identity (lower = better home).
 const PLATFORM_RANK: Record<string, number> = {
@@ -69,6 +111,17 @@ function sameProject(a: ConnectorResult, b: ConnectorResult): boolean {
   const an = nameKey(a);
   const bn = nameKey(b);
   if (an && bn && an === bn) return true; // same normalized name
+
+  // URL-extracted origin keys: connectors register extractors for the hostnames
+  // they own (chrome.google.com, play.google.com, etc.). A GitHub repo whose
+  // `homepage` points at a CWS listing therefore derives `chrome:<extId>`, and
+  // merges with the chrome card that has that same origin id.
+  const aDerived = derivedOriginKeys(a);
+  const bDerived = derivedOriginKeys(b);
+  if (bk && aDerived.includes(bk)) return true;
+  if (ak && bDerived.includes(ak)) return true;
+  if (aDerived.some((d) => bDerived.includes(d))) return true;
+
   const aIds = identityUrls(a);
   const bIds = identityUrls(b);
   if (homepagesOf(a).some((h) => bIds.includes(h))) return true;

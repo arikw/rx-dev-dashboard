@@ -174,6 +174,7 @@ export const fetchApkpureProjects: Connector = async (config, options) => {
       // Replicated origin data (the Play rating APKPure shows).
       mirror: {
         platform: 'apkpure',
+        id: a.packageName,
         url: a.url,
         title: a.title,
         description: a.description ?? '',
@@ -189,6 +190,7 @@ export const fetchApkpureProjects: Connector = async (config, options) => {
       // `downloads` here are APKPure's own (summed, not reconciled with Play).
       native: {
         platform: 'apkpure',
+        id: a.packageName,
         url: a.url,
         firstReleased: a.year,
         image: a.image,

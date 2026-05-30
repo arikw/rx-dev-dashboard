@@ -1,6 +1,16 @@
-import type { Connector } from './types';
+import type { Connector, UrlIdExtractor } from './types';
 import type { ConnectorResult } from '../types/project';
 import { loadFixture, isPlaceholderHandle } from '../lib/fixtures';
+
+export const urlExtractors: UrlIdExtractor[] = [
+  {
+    hostnames: ['hub.docker.com'],
+    extract: (url) => {
+      const m = url.pathname.match(/^\/r\/([^/]+)\/([^/#?]+)/);
+      return m ? { platform: 'docker', id: `${m[1]}/${m[2]}` } : null;
+    },
+  },
+];
 
 type DockerRepo = {
   name: string;

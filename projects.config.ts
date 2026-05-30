@@ -55,7 +55,7 @@ const config: ProjectsConfig = {
     },
     chrome: {
       enabled: true,
-      extensionIds: [],       // 32-char IDs from chromewebstore.google.com URLs
+      extensionIds: [],       // 32-char IDs — shared with the chromestats connector
     },
     gnome: {
       enabled: true,
@@ -66,9 +66,10 @@ const config: ProjectsConfig = {
     },
     appbrain: { enabled: true },   // Google Play stats (rating, installs) via AppBrain
     apkpure: { enabled: true },    // Google Play listing presence via APKPure
-    chromestats: {
+    chromestats: { enabled: true },   // reads the shared sources.chrome.extensionIds
+    playstore: {
       enabled: true,
-      extensionIds: [],            // chrome-stats.com IDs (mirrors CWS, incl. taken-down)
+      packages: [],          // Android package names to fetch live from play.google.com
     },
   },
 

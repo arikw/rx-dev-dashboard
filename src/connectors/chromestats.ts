@@ -170,6 +170,19 @@ function pickPermissions(record: string): Array<{ key: string; risk: number }> |
   return out.length ? out : undefined;
 }
 
+/** Pull the rating histogram from the /reviews subpage's SSR data. */
+async function scrapeHistogram(extId: string): Promise<number[] | null> {
+  const url = `https://chrome-stats.com/d/${encodeURIComponent(extId)}/reviews`;
+  const doc = await fetchHtml(url);
+  if (!doc) return null;
+  const script = findHydrationScript(doc);
+  if (!script) return null;
+  const m = script.match(
+    /\{\s*"1"\s*:\s*(\d+)\s*,\s*"2"\s*:\s*(\d+)\s*,\s*"3"\s*:\s*(\d+)\s*,\s*"4"\s*:\s*(\d+)\s*,\s*"5"\s*:\s*(\d+)\s*\}/,
+  );
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5])] : null;
+}
+
 async function scrapeOne(extId: string): Promise<ChromeStatsApp | null> {
   const url = `https://chrome-stats.com/d/${encodeURIComponent(extId)}`;
   const doc = await fetchHtml(url);
@@ -209,8 +222,10 @@ async function scrapeOne(extId: string): Promise<ChromeStatsApp | null> {
 }
 
 export const fetchChromestatsProjects: Connector = async (config, options) => {
-  const cfg = config.sources.chromestats;
-  if (!cfg.extensionIds.length) return [];
+  // Shared list with the chrome connector — like AppBrain/APKPure share
+  // sources.gplay.packages.
+  const extensionIds = config.sources.chrome.extensionIds;
+  if (!extensionIds.length) return [];
 
   if (options?.fixtureMode) return loadFixture('chromestats');
 
@@ -218,15 +233,23 @@ export const fetchChromestatsProjects: Connector = async (config, options) => {
   if (cache.version !== 1 || !cache.apps) Object.assign(cache, emptyCache());
   cache._generated = NOTE;
 
-  for (const id of cfg.extensionIds) {
-    if (cache.apps[id]) continue;
-    const app = await scrapeOne(id);
-    if (app) cache.apps[id] = app;
-    await sleep(300);
+  for (const id of extensionIds) {
+    if (!cache.apps[id]) {
+      const app = await scrapeOne(id);
+      if (app) cache.apps[id] = app;
+      await sleep(300);
+    }
+    // Backfill the rating histogram from the /reviews subpage if missing.
+    const entry = cache.apps[id];
+    if (entry && !entry.ratingHistogram) {
+      const hist = await scrapeHistogram(id);
+      if (hist) entry.ratingHistogram = hist;
+      await sleep(300);
+    }
   }
   writeJsonCache(CACHE_PATH, cache);
 
-  return cfg.extensionIds
+  return extensionIds
     .map((id) => cache.apps[id])
     .filter((a): a is ChromeStatsApp => !!a)
     .map<ConnectorResult>((a) => ({
@@ -239,6 +262,7 @@ export const fetchChromestatsProjects: Connector = async (config, options) => {
       origin: { platform: 'chrome', id: a.id },
       mirror: {
         platform: 'chrome-stats',
+        id: a.id,
         url: a.url,
         asOf: a.lastUpdate,
         title: a.name,
@@ -246,7 +270,9 @@ export const fetchChromestatsProjects: Connector = async (config, options) => {
         firstReleased: a.creationDate ? new Date(a.creationDate).getUTCFullYear() : undefined,
         tags: [
           'chrome-extension',
-          ...(a.category ? [a.category.split('/').pop()!] : []),
+          // chrome-stats categories look like "productivity/workflow" or
+          // "14_fun"; strip the numeric prefix and take the leaf word.
+          ...(a.category ? [a.category.replace(/^\d+_/, '').split('/').pop()!] : []),
         ],
         kind: 'extension',
         image: a.marqueeBanner ?? a.smallBanner,

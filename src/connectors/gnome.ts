@@ -1,6 +1,16 @@
-import type { Connector } from './types';
+import type { Connector, UrlIdExtractor } from './types';
 import type { ConnectorResult } from '../types/project';
 import { loadFixture } from '../lib/fixtures';
+
+export const urlExtractors: UrlIdExtractor[] = [
+  {
+    hostnames: ['extensions.gnome.org'],
+    extract: (url) => {
+      const m = url.pathname.match(/\/extension\/\d+\/([^/#?]+)/);
+      return m ? { platform: 'gnome', id: m[1] } : null;
+    },
+  },
+];
 
 // extensions.gnome.org has no public per-creator listing, so (like Chrome) the
 // extensions to show are configured explicitly by their numeric pk.

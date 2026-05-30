@@ -1,6 +1,16 @@
-import type { Connector } from './types';
+import type { Connector, UrlIdExtractor } from './types';
 import type { ConnectorResult, ProjectKind } from '../types/project';
 import { loadFixture, isPlaceholderHandle } from '../lib/fixtures';
+
+export const urlExtractors: UrlIdExtractor[] = [
+  {
+    hostnames: ['github.com', 'www.github.com'],
+    extract: (url) => {
+      const m = url.pathname.match(/^\/[^/]+\/([^/#?]+)/);
+      return m ? { platform: 'github', id: m[1].replace(/\.git$/, '') } : null;
+    },
+  },
+];
 
 const MOBILE_TOPICS = new Set([
   'android',

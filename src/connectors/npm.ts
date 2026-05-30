@@ -1,6 +1,16 @@
-import type { Connector } from './types';
+import type { Connector, UrlIdExtractor } from './types';
 import type { ConnectorResult } from '../types/project';
 import { loadFixture, isPlaceholderHandle } from '../lib/fixtures';
+
+export const urlExtractors: UrlIdExtractor[] = [
+  {
+    hostnames: ['www.npmjs.com', 'npmjs.com'],
+    extract: (url) => {
+      const m = url.pathname.match(/^\/package\/(@[^/]+\/[^/#?]+|[^/#?]+)/);
+      return m ? { platform: 'npm', id: decodeURIComponent(m[1]) } : null;
+    },
+  },
+];
 import {
   readNpmCache,
   writeNpmCache,
