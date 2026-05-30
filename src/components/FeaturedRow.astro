@@ -15,7 +15,7 @@ const { projects } = Astro.props;
       <span class="section-count">{String(projects.length).padStart(2, '0')}</span>
     </header>
     <div class="featured-grid">
-      {projects.map((p) => <ProjectCard project={p} size="featured" />)}
+      {projects.map((p) => <ProjectCard project={p} size="compact" />)}
     </div>
   </section>
 )}

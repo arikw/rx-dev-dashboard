@@ -30,10 +30,15 @@ const icon = p.icon;
 const screenshot = p.screenshots?.[0];
 
 // Brand-mark fallback for image-less cards (github / npm / docker projects).
-// Lowest-rank source wins so a github+npm project shows the github mark.
+// The "what it ships as" identity wins: a github+npm project shows the npm
+// wordmark (it's an npm package — github is just where the source happens
+// to live), github+docker shows the docker whale, and github-only stays on
+// the Octocat. Side benefit: when many projects are github-only-with-no-art,
+// adding the npm/docker tints distributes color across the grid so the
+// dashboard doesn't read as a wall of identical dark tiles.
 // Simple Icons paths (CC0). Sources without a mark fall through to the
 // generic gradient placeholder below.
-const BRAND_RANK: Record<string, number> = { github: 0, npm: 1, docker: 2 };
+const BRAND_RANK: Record<string, number> = { npm: 0, docker: 1, github: 2 };
 const BRAND_MARKS: Record<string, { path: string; tint: string; fg: string }> = {
   github: {
     tint: '#0a0c12',
