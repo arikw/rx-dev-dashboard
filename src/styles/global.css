@@ -177,74 +177,97 @@ button {
   opacity: 0.7;
 }
 
-/* Profile presence strip — small chips below the hero linking out to author-
-   level sources (Stack Overflow, GitHub profile, etc.). One per data-only
-   connector. */
+/* Profile presence strip — author-level cards beneath the hero linking out
+   to sources like GitHub profile or Stack Overflow. Visually a sibling of
+   the hero stat tiles: light backplate, big numbers, brand colour as an
+   accent (not a full wash). One per data-only connector. */
 .profile-presence {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 24px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 28px 0 0;
 }
 .profile-chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--brand-tint, #1c1f26);
-  color: var(--brand-fg, #fff);
+  gap: 16px;
+  padding: 16px 18px;
+  background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-left: 4px solid var(--brand-tint, var(--accent));
+  border-radius: 10px;
+  color: var(--fg);
   text-decoration: none;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
 }
 .profile-chip:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(15, 17, 21, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(15, 17, 21, 0.08);
 }
-.profile-chip-mark,
+.profile-chip-mark {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  color: var(--brand-tint, var(--fg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .profile-chip-mark > svg {
-  width: 28px;
-  height: 28px;
-  display: block;
+  width: 100%;
+  height: 100%;
   fill: currentColor;
-  opacity: 0.95;
 }
 .profile-chip-body {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
+  min-width: 0;
   font-feature-settings: 'tnum';
 }
 .profile-chip-label {
   font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.78;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 500;
 }
 .profile-chip-headline {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
-  gap: 5px;
+  gap: 6px;
 }
 .profile-chip-headline-value {
-  font-size: 1.05rem;
+  font-size: 1.5rem;
   font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  line-height: 1;
 }
 .profile-chip-headline-label {
-  font-size: 0.82rem;
-  opacity: 0.78;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 .profile-chip-details {
-  display: inline-flex;
-  gap: 8px;
-  font-size: 0.78rem;
-  opacity: 0.85;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
   margin-top: 2px;
 }
 .profile-chip-detail {
   display: inline-flex;
-  gap: 2px;
+  align-items: baseline;
+  gap: 4px;
+}
+.profile-chip-detail + .profile-chip-detail::before {
+  content: '·';
+  margin: 0 8px;
+  opacity: 0.5;
+}
+.profile-chip-detail-value {
+  color: var(--fg);
+  font-weight: 500;
 }
 
 /* Section headers */

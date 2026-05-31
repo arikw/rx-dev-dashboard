@@ -38,8 +38,8 @@ function renderValue(v: number | string): string {
               <span class="profile-chip-details">
                 {p.details.map((d) => (
                   <span class="profile-chip-detail">
-                    <span class="profile-chip-detail-label">{d.label}</span>
                     <span class="profile-chip-detail-value">{renderValue(d.value)}</span>
+                    <span class="profile-chip-detail-label">{d.label}</span>
                   </span>
                 ))}
               </span>
