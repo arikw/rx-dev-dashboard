@@ -177,127 +177,164 @@ button {
   line-height: 1.4;
 }
 
-/* Review carousel — horizontal scroller of recent positive reviews, one per
-   project, round-robin'd when there are fewer projects than slots. */
+/* Testimonial-style review carousel — one slide visible at a time, fading
+   between auto-advanced reviews, with dot pagination below. Slides share a
+   single grid cell so the row sizes to the tallest one and the others
+   cross-fade in place. */
 .review-carousel {
-  margin: 0 0 48px;
+  max-width: 720px;
+  margin: 12px auto 48px;
+  position: relative;
 }
-.review-carousel-track {
-  display: flex;
-  gap: 18px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-padding: 0 2px;
-  padding: 4px 2px 16px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-color: var(--border) transparent;
+.review-stage {
+  display: grid;
 }
-.review-carousel-track::-webkit-scrollbar {
-  height: 8px;
-}
-.review-carousel-track::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 8px;
-}
-.review-card {
-  flex: 0 0 320px;
-  scroll-snap-align: start;
+.review-slide {
+  grid-area: 1 / 1;
+  padding: 32px 36px 28px;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--card-accent, var(--accent));
-  border-radius: 14px;
-  padding: 18px 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  position: relative;
+  border-radius: 16px;
   box-shadow:
     0 1px 2px rgba(15, 17, 21, 0.04),
-    0 4px 12px rgba(15, 17, 21, 0.04);
-  transition: transform 0.18s, box-shadow 0.18s;
+    0 8px 24px rgba(15, 17, 21, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.55s ease, transform 0.55s ease, visibility 0s linear 0.55s;
+  pointer-events: none;
 }
-.review-card:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 2px 4px rgba(15, 17, 21, 0.06),
-    0 10px 20px rgba(15, 17, 21, 0.08);
+.review-slide[aria-current='true'] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+  pointer-events: auto;
 }
-.review-card-quote-mark {
+.review-slide-mark {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 3.2rem;
-  line-height: 0.6;
+  font-size: 5rem;
+  line-height: 0.5;
   color: var(--card-accent, var(--accent));
-  opacity: 0.32;
-  margin: 4px 0 -4px;
+  opacity: 0.28;
+  margin: 8px 0 -10px;
+  user-select: none;
 }
-.review-card-body {
+.review-slide-body {
   margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: 1.1rem;
+  line-height: 1.6;
   color: var(--fg);
-  flex: 1;
-  /* Clamp long bodies so the cards don't blow up the row height. */
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  letter-spacing: -0.005em;
 }
-.review-card-rating {
-  font-size: 0.85rem;
-  color: var(--card-accent, var(--accent));
-  letter-spacing: 2px;
-  margin-top: 2px;
-}
-.review-card-rating-empty {
-  opacity: 0.22;
-}
-.review-card-foot {
+.review-slide-foot {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-top: 12px;
-  margin-top: 4px;
+  gap: 14px;
+  margin-top: 8px;
+  padding-top: 18px;
   border-top: 1px solid var(--border);
-  font-feature-settings: 'tnum';
 }
-.review-card-source {
+.review-slide-source {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
   text-decoration: none;
   color: var(--fg);
   transition: color 0.15s;
 }
-.review-card-source:hover {
+.review-slide-source:hover {
   color: var(--accent);
 }
-.review-card-source-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
+.review-slide-source-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   object-fit: cover;
   background: var(--bg-elev, transparent);
   flex-shrink: 0;
 }
-.review-card-source-icon--placeholder {
+.review-slide-source-icon--placeholder {
   background: var(--card-accent, var(--accent));
   opacity: 0.6;
 }
-.review-card-source-title {
-  font-size: 0.85rem;
-  font-weight: 500;
+.review-slide-source-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.review-slide-source-title {
+  font-size: 0.92rem;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
-.review-card-source-tag {
-  font-size: 0.7rem;
+.review-slide-source-tag {
+  font-size: 0.72rem;
   color: var(--muted);
   letter-spacing: 0.04em;
+}
+.review-slide-rating {
   margin-left: auto;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  white-space: nowrap;
   flex-shrink: 0;
+}
+.review-slide-rating-filled {
+  color: var(--card-accent, var(--accent));
+}
+.review-slide-rating-empty {
+  opacity: 0.22;
+}
+
+/* Dots */
+.review-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.review-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 0.18s, transform 0.18s, width 0.18s;
+}
+.review-dot:hover {
+  background: var(--muted);
+}
+.review-dot[aria-current='true'] {
+  background: var(--accent);
+  width: 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-slide {
+    transition: opacity 0s, transform 0s;
+  }
+  .review-dot {
+    transition: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .review-slide {
+    padding: 24px 22px 22px;
+  }
+  .review-slide-body {
+    font-size: 1rem;
+  }
 }
 
 /* Build timestamp — page metadata. Lives at the very bottom of the page so

@@ -4,10 +4,12 @@ import { sourceLabel } from '../lib/source-label';
 
 interface Props {
   reviews: CarouselReview[];
+  /** Auto-advance interval in ms. */
+  interval?: number;
 }
-const { reviews } = Astro.props;
+const { reviews, interval = 6000 } = Astro.props;
 
-// Soft tint per card — pull from the project's iconColor when available so
+// Soft tint per slide — pull from the project's iconColor when available so
 // the carousel inherits the same "what this project is about" colour rhythm
 // the icon-only cards use. Falls back to a neutral accent otherwise.
 function tintFor(r: CarouselReview): string {
@@ -15,34 +17,26 @@ function tintFor(r: CarouselReview): string {
 }
 ---
 {reviews.length > 0 && (
-  <section class="review-carousel" aria-label="Recent positive reviews">
-    <header class="section-head">
-      <span class="section-label">What users say</span>
-      <span class="section-rule" aria-hidden="true"></span>
-      <span class="section-count">{String(reviews.length).padStart(2, '0')}</span>
-    </header>
-
-    <div class="review-carousel-track" tabindex="0">
-      {reviews.map((r) => (
+  <section
+    class="review-carousel"
+    aria-label="Recent positive reviews"
+    data-interval={interval}
+  >
+    <div class="review-stage">
+      {reviews.map((r, i) => (
         <article
-          class="review-card"
+          class="review-slide"
+          data-index={i}
+          aria-current={i === 0 ? 'true' : 'false'}
+          aria-hidden={i === 0 ? 'false' : 'true'}
           style={`--card-accent: ${tintFor(r)}`}
         >
-          <div class="review-card-quote-mark" aria-hidden="true">&ldquo;</div>
-          <p class="review-card-body">{r.body}</p>
+          <div class="review-slide-mark" aria-hidden="true">&ldquo;</div>
+          <p class="review-slide-body">{r.body}</p>
 
-          {typeof r.rating === 'number' && r.rating > 0 && (
-            <div class="review-card-rating" aria-label={`${r.rating} out of 5 stars`}>
-              {'★'.repeat(Math.min(5, Math.max(0, Math.round(r.rating))))}
-              <span class="review-card-rating-empty">
-                {'★'.repeat(Math.max(0, 5 - Math.round(r.rating)))}
-              </span>
-            </div>
-          )}
-
-          <footer class="review-card-foot">
+          <footer class="review-slide-foot">
             <a
-              class="review-card-source"
+              class="review-slide-source"
               href={r.projectUrl}
               target="_blank"
               rel="noopener"
@@ -50,23 +44,112 @@ function tintFor(r: CarouselReview): string {
             >
               {r.projectIcon ? (
                 <img
-                  class="review-card-source-icon"
+                  class="review-slide-source-icon"
                   src={r.projectIcon}
                   alt=""
                   loading="lazy"
                   decoding="async"
                 />
               ) : (
-                <span class="review-card-source-icon review-card-source-icon--placeholder" aria-hidden="true" />
+                <span
+                  class="review-slide-source-icon review-slide-source-icon--placeholder"
+                  aria-hidden="true"
+                />
               )}
-              <span class="review-card-source-title">{r.projectTitle}</span>
+              <span class="review-slide-source-text">
+                <span class="review-slide-source-title">{r.projectTitle}</span>
+                {r.source && (
+                  <span class="review-slide-source-tag">via {sourceLabel(r.source)}</span>
+                )}
+              </span>
             </a>
-            {r.source && (
-              <span class="review-card-source-tag">via {sourceLabel(r.source)}</span>
+            {typeof r.rating === 'number' && r.rating > 0 && (
+              <div class="review-slide-rating" aria-label={`${r.rating} out of 5 stars`}>
+                <span class="review-slide-rating-filled">
+                  {'★'.repeat(Math.min(5, Math.max(0, Math.round(r.rating))))}
+                </span>
+                <span class="review-slide-rating-empty">
+                  {'★'.repeat(Math.max(0, 5 - Math.round(r.rating)))}
+                </span>
+              </div>
             )}
           </footer>
         </article>
       ))}
     </div>
+
+    {reviews.length > 1 && (
+      <nav class="review-dots" aria-label="Choose a review">
+        {reviews.map((_, i) => (
+          <button
+            type="button"
+            class="review-dot"
+            data-jump={i}
+            aria-label={`Show review ${i + 1} of ${reviews.length}`}
+            aria-current={i === 0 ? 'true' : 'false'}
+          />
+        ))}
+      </nav>
+    )}
   </section>
 )}
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll<HTMLElement>('.review-carousel').forEach((root) => {
+      const slides = Array.from(root.querySelectorAll<HTMLElement>('.review-slide'));
+      const dots = Array.from(root.querySelectorAll<HTMLButtonElement>('.review-dot'));
+      if (slides.length < 2) return;
+
+      const interval = parseInt(root.dataset.interval ?? '6000', 10);
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let current = 0;
+      let paused = false;
+      let timer: number | null = null;
+
+      function show(next: number) {
+        const idx = ((next % slides.length) + slides.length) % slides.length;
+        if (idx === current) return;
+        slides[current].setAttribute('aria-current', 'false');
+        slides[current].setAttribute('aria-hidden', 'true');
+        slides[idx].setAttribute('aria-current', 'true');
+        slides[idx].setAttribute('aria-hidden', 'false');
+        if (dots.length) {
+          dots[current]?.setAttribute('aria-current', 'false');
+          dots[idx]?.setAttribute('aria-current', 'true');
+        }
+        current = idx;
+      }
+      function tick() { if (!paused) show(current + 1); }
+      function startTimer() {
+        if (reduceMotion || timer != null) return;
+        timer = window.setInterval(tick, interval);
+      }
+      function stopTimer() {
+        if (timer != null) { clearInterval(timer); timer = null; }
+      }
+      function resetTimer() { stopTimer(); startTimer(); }
+
+      dots.forEach((dot) => {
+        dot.addEventListener('click', () => {
+          const i = parseInt(dot.dataset.jump ?? '0', 10);
+          show(i);
+          resetTimer();
+        });
+      });
+
+      // Pause on hover / focus so visitors can finish reading; resume after.
+      root.addEventListener('mouseenter', () => { paused = true; });
+      root.addEventListener('mouseleave', () => { paused = false; });
+      root.addEventListener('focusin', () => { paused = true; });
+      root.addEventListener('focusout', () => { paused = false; });
+
+      // Pause when the tab is hidden so we don't churn intervals in the background.
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopTimer(); else startTimer();
+      });
+
+      startTimer();
+    });
+  });
+</script>
