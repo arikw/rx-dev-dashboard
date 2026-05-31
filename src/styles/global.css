@@ -93,7 +93,7 @@ button {
 
 /* Hero */
 .hero {
-  margin-bottom: 56px;
+  margin-bottom: 32px;
 }
 
 .eyebrow {
@@ -185,7 +185,9 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
-  margin: 28px 0 0;
+  /* The hero / siteAbout / featured-grid all live on a 32px rhythm; the
+     strip slots between hero and siteAbout with the same gap on either side. */
+  margin: 0 0 32px;
 }
 .profile-chip {
   display: flex;
@@ -253,7 +255,9 @@ button {
   gap: 0;
   font-size: 0.8rem;
   color: var(--muted);
-  margin-top: 2px;
+  /* No own margin — the body's `gap: 4px` already provides the rhythm.
+     A stacked margin-top here would make the headline-→-details gap
+     larger than the kicker-→-headline gap. */
 }
 .profile-chip-detail {
   display: inline-flex;
@@ -793,7 +797,7 @@ a.card-source:hover {
 /* Site about: long-form intro between hero and featured row */
 .site-about {
   max-width: 64ch;
-  margin: 8px auto 40px;
+  margin: 0 auto 40px;
   color: var(--muted);
   font-size: 1.02rem;
   line-height: 1.7;
