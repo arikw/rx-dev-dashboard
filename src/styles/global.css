@@ -177,6 +177,76 @@ button {
   opacity: 0.7;
 }
 
+/* Profile presence strip — small chips below the hero linking out to author-
+   level sources (Stack Overflow, GitHub profile, etc.). One per data-only
+   connector. */
+.profile-presence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0 0;
+}
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--brand-tint, #1c1f26);
+  color: var(--brand-fg, #fff);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.profile-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(15, 17, 21, 0.12);
+}
+.profile-chip-mark,
+.profile-chip-mark > svg {
+  width: 28px;
+  height: 28px;
+  display: block;
+  fill: currentColor;
+  opacity: 0.95;
+}
+.profile-chip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-feature-settings: 'tnum';
+}
+.profile-chip-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+.profile-chip-headline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.profile-chip-headline-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.profile-chip-headline-label {
+  font-size: 0.82rem;
+  opacity: 0.78;
+}
+.profile-chip-details {
+  display: inline-flex;
+  gap: 8px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.profile-chip-detail {
+  display: inline-flex;
+  gap: 2px;
+}
+
 /* Section headers */
 .section-head {
   display: flex;

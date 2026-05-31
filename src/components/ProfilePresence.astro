@@ -1,0 +1,52 @@
+---
+import type { ProfileFact } from '../types/project';
+import { formatStat } from '../lib/aggregate-stats';
+import { getBrandMarks } from '../connectors/_registry';
+
+interface Props {
+  profiles: ProfileFact[];
+}
+const { profiles } = Astro.props;
+const brandMarks = getBrandMarks();
+
+function renderValue(v: number | string): string {
+  return typeof v === 'number' ? formatStat(v) : v;
+}
+---
+{profiles.length > 0 && (
+  <section class="profile-presence" aria-label="Also on the internet">
+    {profiles.map((p) => {
+      const mark = brandMarks[p.source];
+      return (
+        <a
+          class="profile-chip"
+          href={p.url}
+          target="_blank"
+          rel="noopener"
+          style={mark ? `--brand-tint: ${mark.tint}; --brand-fg: ${mark.fg}` : undefined}
+        >
+          {mark && (
+            <span class="profile-chip-mark" set:html={mark.svg} aria-hidden="true" />
+          )}
+          <span class="profile-chip-body">
+            <span class="profile-chip-label">{p.label}</span>
+            <span class="profile-chip-headline">
+              <span class="profile-chip-headline-value">{renderValue(p.headline.value)}</span>
+              <span class="profile-chip-headline-label">{p.headline.label}</span>
+            </span>
+            {p.details && p.details.length > 0 && (
+              <span class="profile-chip-details">
+                {p.details.map((d) => (
+                  <span class="profile-chip-detail">
+                    <span class="profile-chip-detail-label">{d.label}</span>
+                    <span class="profile-chip-detail-value">{renderValue(d.value)}</span>
+                  </span>
+                ))}
+              </span>
+            )}
+          </span>
+        </a>
+      );
+    })}
+  </section>
+)}

@@ -1,6 +1,7 @@
 import type { Connector } from '../types';
 import { defineConnector, type UrlIdExtractor } from '../_define';
 import { fetchGithubRepoProjects } from './projects';
+import { fetchGithubProfile } from './profile';
 import iconSvg from './icon.svg?raw';
 
 export const urlExtractors: UrlIdExtractor[] = [
@@ -30,13 +31,20 @@ export default defineConnector({
   },
   fetch: async (config, opts) => {
     const cfg = config.sources.github;
-    const projects = await fetchGithubRepoProjects({
-      handle: config.user.github,
-      includeForks: cfg.includeForks,
-      excludeRepos: cfg.excludeRepos,
-      fixtureMode: opts?.fixtureMode,
-    });
-    return { projects };
+    const handle = config.user.github;
+    const token = process.env.GITHUB_TOKEN;
+    // Repos + profile fetch in parallel — they're independent and the profile
+    // call is cheap (one REST GET against /users/<handle>).
+    const [projects, profile] = await Promise.all([
+      fetchGithubRepoProjects({
+        handle,
+        includeForks: cfg.includeForks,
+        excludeRepos: cfg.excludeRepos,
+        fixtureMode: opts?.fixtureMode,
+      }),
+      fetchGithubProfile(handle, token),
+    ]);
+    return { projects, profile: profile ?? undefined };
   },
 });
 
