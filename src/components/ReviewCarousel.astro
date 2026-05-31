@@ -9,11 +9,23 @@ interface Props {
 }
 const { reviews, interval = 6000 } = Astro.props;
 
-// Soft tint per slide — pull from the project's iconColor when available so
-// the carousel inherits the same "what this project is about" colour rhythm
-// the icon-only cards use. Falls back to a neutral accent otherwise.
+// Per-slide accent — pull from the project's iconColor so the carousel
+// inherits the same colour rhythm the icon-only cards use.
 function tintFor(r: CarouselReview): string {
   return r.projectIconColor ?? 'var(--accent)';
+}
+
+const fmt = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  timeZone: 'UTC',
+});
+function formatDate(ts?: string): string | null {
+  if (!ts) return null;
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return null;
+  return fmt.format(d);
 }
 ---
 {reviews.length > 0 && (
@@ -23,59 +35,68 @@ function tintFor(r: CarouselReview): string {
     data-interval={interval}
   >
     <div class="review-stage">
-      {reviews.map((r, i) => (
-        <article
-          class="review-slide"
-          data-index={i}
-          aria-current={i === 0 ? 'true' : 'false'}
-          aria-hidden={i === 0 ? 'false' : 'true'}
-          style={`--card-accent: ${tintFor(r)}`}
-        >
-          <div class="review-slide-mark" aria-hidden="true">&ldquo;</div>
-          <p class="review-slide-body">{r.body}</p>
+      {reviews.map((r, i) => {
+        const dateLabel = formatDate(r.ts);
+        const rating = typeof r.rating === 'number' && r.rating > 0
+          ? Math.min(5, Math.max(0, Math.round(r.rating)))
+          : null;
+        return (
+          <article
+            class="review-slide"
+            data-index={i}
+            aria-current={i === 0 ? 'true' : 'false'}
+            aria-hidden={i === 0 ? 'false' : 'true'}
+            style={`--card-accent: ${tintFor(r)}`}
+          >
+            <div class="review-slide-mark" aria-hidden="true">&ldquo;</div>
+            <blockquote class="review-slide-body">{r.body}</blockquote>
 
-          <footer class="review-slide-foot">
-            <a
-              class="review-slide-source"
-              href={r.projectUrl}
-              target="_blank"
-              rel="noopener"
-              title={`Open ${r.projectTitle}`}
-            >
-              {r.projectIcon ? (
-                <img
-                  class="review-slide-source-icon"
-                  src={r.projectIcon}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <span
-                  class="review-slide-source-icon review-slide-source-icon--placeholder"
-                  aria-hidden="true"
-                />
-              )}
-              <span class="review-slide-source-text">
+            {rating !== null && (
+              <div class="review-slide-rating" aria-label={`${rating} out of 5 stars`}>
+                <span class="review-slide-rating-filled">{'★'.repeat(rating)}</span>
+                <span class="review-slide-rating-empty">{'★'.repeat(5 - rating)}</span>
+              </div>
+            )}
+
+            <footer class="review-slide-foot">
+              <a
+                class="review-slide-source"
+                href={r.projectUrl}
+                target="_blank"
+                rel="noopener"
+                title={`Open ${r.projectTitle}`}
+              >
+                {r.projectIcon ? (
+                  <img
+                    class="review-slide-source-icon"
+                    src={r.projectIcon}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <span
+                    class="review-slide-source-icon review-slide-source-icon--placeholder"
+                    aria-hidden="true"
+                  />
+                )}
                 <span class="review-slide-source-title">{r.projectTitle}</span>
+              </a>
+              <span class="review-slide-meta">
                 {r.source && (
                   <span class="review-slide-source-tag">via {sourceLabel(r.source)}</span>
                 )}
+                {dateLabel && (
+                  <>
+                    {r.source && <span class="review-slide-meta-sep" aria-hidden="true">·</span>}
+                    <time class="review-slide-date" datetime={r.ts}>{dateLabel}</time>
+                  </>
+                )}
               </span>
-            </a>
-            {typeof r.rating === 'number' && r.rating > 0 && (
-              <div class="review-slide-rating" aria-label={`${r.rating} out of 5 stars`}>
-                <span class="review-slide-rating-filled">
-                  {'★'.repeat(Math.min(5, Math.max(0, Math.round(r.rating))))}
-                </span>
-                <span class="review-slide-rating-empty">
-                  {'★'.repeat(Math.max(0, 5 - Math.round(r.rating)))}
-                </span>
-              </div>
-            )}
-          </footer>
-        </article>
-      ))}
+            </footer>
+          </article>
+        );
+      })}
     </div>
 
     {reviews.length > 1 && (
@@ -138,13 +159,11 @@ function tintFor(r: CarouselReview): string {
         });
       });
 
-      // Pause on hover / focus so visitors can finish reading; resume after.
       root.addEventListener('mouseenter', () => { paused = true; });
       root.addEventListener('mouseleave', () => { paused = false; });
       root.addEventListener('focusin', () => { paused = true; });
       root.addEventListener('focusout', () => { paused = false; });
 
-      // Pause when the tab is hidden so we don't churn intervals in the background.
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) stopTimer(); else startTimer();
       });

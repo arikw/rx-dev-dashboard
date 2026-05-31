@@ -18,6 +18,16 @@ function isPositive(r: Review): boolean {
   return typeof r.rating !== 'number' || r.rating >= 4;
 }
 
+/** Cheap "looks English" filter — reject reviews containing characters from
+ *  non-Latin scripts (CJK, Hebrew, Arabic, Cyrillic, Devanagari, etc.). Catches
+ *  the obvious foreign-language reviews. Latin-script non-English (Portuguese,
+ *  Spanish, …) slips through; detecting *that* reliably needs a language
+ *  classifier and isn't worth a dependency for a portfolio dashboard. */
+function looksEnglish(r: Review): boolean {
+  const body = r.body ?? '';
+  return !/[Ѐ-ӿԀ-ԯ֐-׿؀-ۿ܀-ݏऀ-ॿ぀-ゟ゠-ヿ一-鿿가-힯]/.test(body);
+}
+
 /** Newest-positive-per-project, then round-robin a second pass, third pass, …
  *  until we hit the target. Keeps the carousel visually mixed when there are
  *  few projects with reviews (e.g. 2 projects × 5 picks each) without
@@ -27,8 +37,9 @@ export function pickCarouselReviews(projects: Project[], target = 10): CarouselR
   const byProject = new Map<string, { project: Project; reviews: Review[] }>();
   for (const p of projects) {
     const positives = (p.reviews ?? [])
-      .filter(isPositive)
       .filter((r) => r.body && r.body.trim().length > 0)
+      .filter(isPositive)
+      .filter(looksEnglish)
       .slice()
       .sort((a, b) => (b.ts ?? '').localeCompare(a.ts ?? ''));
     if (positives.length > 0) byProject.set(p.id, { project: p, reviews: positives });

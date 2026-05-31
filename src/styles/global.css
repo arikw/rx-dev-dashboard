@@ -93,9 +93,9 @@ button {
 
 /* Hero */
 .hero {
-  /* Default gap to whatever follows the hero (siteAbout, featured row, …).
-     Stays at 32px when the ProfilePresence strip is absent. */
-  margin-bottom: 32px;
+  /* Default gap to whatever follows the hero (siteAbout, featured row, …)
+     on the standard 48px section rhythm. */
+  margin-bottom: 48px;
 }
 /* When the ProfilePresence strip *is* rendered immediately below, shrink the
    gap — the strip's chips read as part of the same visual unit as the hero
@@ -178,12 +178,13 @@ button {
 }
 
 /* Testimonial-style review carousel — one slide visible at a time, fading
-   between auto-advanced reviews, with dot pagination below. Slides share a
-   single grid cell so the row sizes to the tallest one and the others
-   cross-fade in place. */
+   between auto-advanced reviews, with dot pagination below. Centered
+   typography to read as a real quote, not as a card. All slides share a
+   single CSS Grid cell so the row sizes to the tallest review and the rest
+   cross-fade in place with no layout shift. */
 .review-carousel {
   max-width: 720px;
-  margin: 12px auto 48px;
+  margin: 0 auto 48px;
   position: relative;
 }
 .review-stage {
@@ -191,19 +192,21 @@ button {
 }
 .review-slide {
   grid-area: 1 / 1;
-  padding: 32px 36px 28px;
+  padding: 40px 36px 32px;
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow:
     0 1px 2px rgba(15, 17, 21, 0.04),
-    0 8px 24px rgba(15, 17, 21, 0.05);
+    0 12px 28px rgba(15, 17, 21, 0.06);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(4px);
+  transform: translateY(6px);
   transition: opacity 0.55s ease, transform 0.55s ease, visibility 0s linear 0.55s;
   pointer-events: none;
 }
@@ -216,33 +219,48 @@ button {
 }
 .review-slide-mark {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 5rem;
+  font-size: 5.5rem;
   line-height: 0.5;
   color: var(--card-accent, var(--accent));
-  opacity: 0.28;
-  margin: 8px 0 -10px;
+  opacity: 0.22;
+  margin: 4px 0 -14px;
   user-select: none;
 }
 .review-slide-body {
+  /* Override blockquote default — no indent, no border. */
   margin: 0;
-  font-size: 1.1rem;
-  line-height: 1.6;
+  padding: 0;
+  border: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 1.2rem;
+  line-height: 1.55;
   color: var(--fg);
   letter-spacing: -0.005em;
+  max-width: 56ch;
+}
+.review-slide-rating {
+  font-size: 1rem;
+  letter-spacing: 4px;
+  white-space: nowrap;
+}
+.review-slide-rating-filled {
+  color: var(--card-accent, var(--accent));
+}
+.review-slide-rating-empty {
+  opacity: 0.22;
 }
 .review-slide-foot {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 14px;
-  margin-top: 8px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
+  gap: 6px;
+  margin-top: 4px;
 }
 .review-slide-source {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
+  gap: 10px;
   text-decoration: none;
   color: var(--fg);
   transition: color 0.15s;
@@ -251,9 +269,9 @@ button {
   color: var(--accent);
 }
 .review-slide-source-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   object-fit: cover;
   background: var(--bg-elev, transparent);
   flex-shrink: 0;
@@ -262,36 +280,27 @@ button {
   background: var(--card-accent, var(--accent));
   opacity: 0.6;
 }
-.review-slide-source-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
 .review-slide-source-title {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
+  letter-spacing: -0.005em;
+}
+.review-slide-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-feature-settings: 'tnum';
 }
 .review-slide-source-tag {
-  font-size: 0.72rem;
-  color: var(--muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
 }
-.review-slide-rating {
-  margin-left: auto;
-  font-size: 0.95rem;
-  letter-spacing: 2px;
-  white-space: nowrap;
-  flex-shrink: 0;
+.review-slide-meta-sep {
+  opacity: 0.5;
 }
-.review-slide-rating-filled {
-  color: var(--card-accent, var(--accent));
-}
-.review-slide-rating-empty {
-  opacity: 0.22;
+.review-slide-date {
+  font-feature-settings: 'tnum';
 }
 
 /* Dots */
@@ -299,7 +308,7 @@ button {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 .review-dot {
   width: 8px;
@@ -330,10 +339,13 @@ button {
 
 @media (max-width: 600px) {
   .review-slide {
-    padding: 24px 22px 22px;
+    padding: 28px 22px 24px;
   }
   .review-slide-body {
-    font-size: 1rem;
+    font-size: 1.05rem;
+  }
+  .review-slide-mark {
+    font-size: 4.5rem;
   }
 }
 
@@ -341,7 +353,8 @@ button {
    it doesn't accidentally act as a divider between major content sections
    (which is how it read when nested inside the hero). */
 .site-foot {
-  margin: 64px auto 24px;
+  /* Standard 48px section gap above. */
+  margin: 48px auto 24px;
   text-align: center;
   font-size: 0.78rem;
   color: var(--muted);
@@ -364,9 +377,10 @@ button {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
-  /* The hero / siteAbout / featured-grid all live on a 32px rhythm; the
-     strip slots between hero and siteAbout with the same gap on either side. */
-  margin: 0 0 32px;
+  /* Same 48px section gap below as every other major section. The visual
+     pairing with the hero above is created via .hero:has(+ .profile-presence)
+     which shrinks the hero's bottom margin to 12px. */
+  margin: 0 0 48px;
 }
 .profile-chip {
   display: flex;
@@ -458,7 +472,10 @@ button {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 48px 0 20px;
+  /* The section above provides the 48px gap via its own margin-bottom.
+     section-head only handles the small space between its label and the
+     content below it. */
+  margin: 0 0 20px;
 }
 
 .section-label {
@@ -479,6 +496,14 @@ button {
   font-size: 0.8rem;
   color: var(--muted);
   font-feature-settings: 'tnum';
+}
+
+/* Section wrappers — each major content section owns the 48px gap below
+   itself so the page rhythm doesn't depend on margin-collapse between
+   neighbours. */
+.featured,
+.projects {
+  margin-bottom: 48px;
 }
 
 /* Featured grid */
@@ -981,7 +1006,8 @@ a.card-source:hover {
 /* Site about: long-form intro between hero and featured row */
 .site-about {
   max-width: 64ch;
-  margin: 0 auto 40px;
+  /* Standard 48px section gap below — same rhythm as every other section. */
+  margin: 0 auto 48px;
   color: var(--muted);
   font-size: 1.02rem;
   line-height: 1.7;
@@ -1002,7 +1028,9 @@ a.card-source:hover {
 /* Author bio: footer-style block under the project grid */
 .author-bio {
   max-width: 64ch;
-  margin: 64px auto 0;
+  /* Previous section (carousel / grid) provides the 48px gap above via its
+     own margin-bottom; AuthorBio sits flush with no top margin of its own. */
+  margin: 0 auto 0;
   padding: 24px 28px;
   border: 1px solid var(--border);
   border-radius: 10px;

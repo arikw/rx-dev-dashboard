@@ -69,8 +69,8 @@ const carouselReviews = pickCarouselReviews(allProjects, 10);
   <ProfilePresence profiles={profiles} />
   {config.meta.siteAbout && <SiteAbout markdown={config.meta.siteAbout} />}
   <FeaturedRow projects={featured} />
-  <ReviewCarousel reviews={carouselReviews} />
   <ProjectGrid projects={sortedAll} pageSize={config.ui.pageSize} />
+  <ReviewCarousel reviews={carouselReviews} />
   {config.user.bio && <AuthorBio name={config.user.name} bio={config.user.bio} avatar={profileImage} />}
   <footer class="site-foot">
     <p>
