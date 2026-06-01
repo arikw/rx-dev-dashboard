@@ -18,9 +18,10 @@ function normalizeKind(raw?: string): ProjectKind | undefined {
   return VALID_KINDS.has(k as ProjectKind) ? (k as ProjectKind) : 'other';
 }
 
-/** Manual entries become `manual`-platform origins. Media fields (icon,
- *  banner, screenshots, videos) flow through the same path connector-emitted
- *  media does — including the build-time URL cache when enabled. */
+/** Manual entries become `manual`-platform origins. Every optional field on
+ *  ManualProject is passed through to the rep, so a manual project carries
+ *  the same shape (stats, reviews, asOf, archived, media, …) as anything a
+ *  connector emits. */
 export function manualToResults(config: ProjectsConfig): ConnectorResult[] {
   return config.manual.map((m) => ({
     origin: {
@@ -31,6 +32,7 @@ export function manualToResults(config: ProjectsConfig): ConnectorResult[] {
       platform: m.source ?? 'manual',
       id: m.slug,
       url: m.url,
+      asOf: m.asOf,
       title: m.title,
       description: m.description,
       firstReleased: m.year,
@@ -38,12 +40,16 @@ export function manualToResults(config: ProjectsConfig): ConnectorResult[] {
       language: m.language,
       kind: normalizeKind(m.kind),
       openSource: m.openSource ?? !!m.sourceUrl,
+      archived: m.archived,
+      retired: m.retired,
       sourceUrl: m.sourceUrl,
+      homepage: m.homepage,
       icon: m.icon,
       banner: m.banner,
       screenshots: m.screenshots,
       videos: m.videos,
-      stats: {},
+      reviews: m.reviews,
+      stats: m.stats ?? {},
     },
   }));
 }

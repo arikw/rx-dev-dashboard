@@ -179,7 +179,7 @@ function reconcileResource(cands: Cand[]): CanonicalStats {
   const downloadsMonthly = pick(cands, (x) => x.downloadsMonthly, (v) => v);
   const users = pick(cands, (x) => x.users, (v) => v);
   const installs = pick(cands, (x) => x.installs, (v) => v.value);
-  const rating = pick(cands, (x) => x.rating, (v) => v.count);
+  const rating = pick(cands, (x) => x.rating, (v) => v.count ?? 0);
   if (stars != null) s.stars = stars;
   if (forks != null) s.forks = forks;
   if (downloads != null) s.downloads = downloads;
@@ -246,7 +246,7 @@ function buildProject(group: ConnectorResult[]): Project {
     };
   }
   const ratings = contributions.map((c) => c.rating).filter((r): r is NonNullable<typeof r> => !!r);
-  if (ratings.length) stats.rating = ratings.sort((a, b) => b.count - a.count)[0];
+  if (ratings.length) stats.rating = ratings.sort((a, b) => (b.count ?? 0) - (a.count ?? 0))[0];
 
   // 4) Identity from the best origin (lowest platform rank).
   const allReps = group.flatMap(repsOf);
@@ -337,6 +337,7 @@ function buildProject(group: ConnectorResult[]): Project {
     kind: firstField(ordered, (r) => r.kind) as ProjectKind | undefined,
     openSource: allReps.some((r) => r.openSource),
     sourceUrl: firstField(ordered, (r) => r.sourceUrl),
+    retired: allReps.some((r) => r.retired),
     featured: false,
     hasDetail: false,
   };

@@ -50,8 +50,13 @@ if (st.installs && st.installs.value > 0)
       : 'Google Play installs ("10,000+" tier)',
     icon: 'download',
   });
-if (st.rating && st.rating.count)
-  stats.push({ text: `${st.rating.average.toFixed(1)}★ (${formatStat(st.rating.count)})`, title: 'Store rating (number of ratings)' });
+if (st.rating)
+  stats.push({
+    text: st.rating.count
+      ? `${st.rating.average.toFixed(1)}★ (${formatStat(st.rating.count)})`
+      : `${st.rating.average.toFixed(1)}★`,
+    title: st.rating.count ? 'Store rating (number of ratings)' : 'Store rating',
+  });
 if (p.year)
   stats.push({ text: String(p.year), title: `First released in ${p.year}`, icon: 'calendar' });
 

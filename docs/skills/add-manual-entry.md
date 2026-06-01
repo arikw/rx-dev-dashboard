@@ -62,6 +62,41 @@ type ManualProject = {
   // Where the project lived — drives the source-chip label on the card.
   // See "Picking the right `source`" below for guidance.
   source?: string;
+  // Numeric stats scraped from a store listing — stars, downloads, users,
+  // ratings, etc. SAME shape connector-emitted projects use, so the card
+  // renders them identically. See "Capturing stats" below.
+  stats?: {
+    stars?: number;
+    forks?: number;
+    downloads?: number;            // cumulative
+    downloadsMonthly?: number;     // last-30-days
+    installs?: { value: number; exact: boolean };  // Google-Play-style tier
+    users?: number;                // weekly active / daily users
+    rating?: { average: number; count?: number; histogram?: number[] };
+  };
+  // User reviews (rating + body + ISO date + source). Surfaced in the
+  // homepage review carousel if positive (≥4 stars or unrated) and English.
+  // NEVER include author name / handle / email — PII rules apply.
+  reviews?: Array<{ rating?: number; body: string; ts?: string; source?: string }>;
+  // Project's own website (separate from `url` which is the outbound listing).
+  homepage?: string;
+  // ISO date the entry's data was last verified — drives reconcile (freshest
+  // wins) and shows up as the "as of" date on the card. Use the snapshot
+  // timestamp when scraping from a Wayback / archive page.
+  asOf?: string;
+  // Mark as archived. Archived projects are DROPPED from the grid.
+  // Use this only when you want the card NOT to appear at all.
+  archived?: boolean;
+  // Mark as retired. Card stays in the grid; the hero's "Active users"
+  // total excludes `stats.users` (historical snapshots don't get to
+  // inflate the live-headcount headline). When the entry has NO
+  // `downloads` / `installs` data, the user count is promoted to the
+  // "Downloads & pulls" total instead — each historical user is one
+  // past install event. Set retired:true for ANY project whose user
+  // count is a past snapshot rather than a live signal: removed
+  // Chrome / Firefox / Edge extensions, taken-down listings, archived
+  // addon pages, etc.
+  retired?: boolean;
 };
 ```
 
@@ -95,6 +130,64 @@ Heuristics for the AI assistant adding the entry:
 - **Don't invent a key when the connector exists.** Use `'github'`, NOT `'gh'` or `'github-pages'`, when the project lived as a GitHub repo.
 
 Acceptable to leave `source` omitted only if the project genuinely had no public host (closed-source internal tool, retired binary, conference talk, etc.) — those legitimately read as "PORTFOLIO".
+
+## Picking `url` for a retired / removed project
+
+The `url` field is the card's outbound link — what a visitor lands on if they click the title. For RETIRED projects (extension removed from the store, repo archived, addon page taken down) the live URL almost always 404s.
+
+**Rule**: HEAD-check the live URL. If it returns 404 / 410 / a "this listing is no longer available" redirect, use the **archive URL you scraped from instead** (Wayback / Archive.today / etc.). A snapshot URL that loads is better UX than a dead canonical URL.
+
+Examples:
+
+- AMO removed addon → live `addons.mozilla.org/...` returns 404 → use `web.archive.org/web/<ts>/addons.mozilla.org/...`
+- Chrome Web Store removed extension → live `chromewebstore.google.com/detail/<id>` redirects to `/detail/empty-title/<id>` → use a chrome-stats.com mirror page OR the Wayback snapshot.
+- Archived GitHub repo → repo is still reachable but `archived: true` in metadata → still safe to use the live URL.
+
+Verifying live-vs-dead is one `curl -sIL --max-time 10 <url>` away. Don't guess.
+
+## Capturing stats
+
+Manual entries are first-class — they accept the same `stats` shape connector-emitted projects do. When you scrape a project from a store listing, **look hard for numbers** and populate them. The card's stats row is what makes it feel like a real project tile instead of a description.
+
+What to look for, by source:
+
+| Source | Look for | Maps to |
+|---|---|---|
+| AMO (Firefox add-ons) | `<meta itemprop="interactionCount" content="UserDownloads:32239"/>` | `stats.downloads = 32239` |
+| AMO | `<div id="daily-users">223 users</div>` *(or `weekly downloads`)* | `stats.users = 223` |
+| AMO | `<meta itemprop="ratingValue" content="4.2"/>` *(may have `reviewCount` too)* | `stats.rating = { average: 4.2, count?: <reviewCount> }` |
+| Chrome Web Store | `1,000,000+ users` text, or `<meta itemprop="ratingValue">` | `stats.users` (drop the `+`), `stats.rating` |
+| Google Play | install tier `"10,000+"` | `stats.installs = { value: 10000, exact: false }` |
+| GitHub repo (if scraping HTML) | star icon → number | `stats.stars` |
+| npm | weekly downloads on the package page | `stats.downloadsMonthly` |
+
+Generic markers to grep on ANY page:
+
+- Schema.org microdata: `itemprop="ratingValue"`, `itemprop="reviewCount"`, `itemprop="interactionCount"` (with `UserDownloads:N` / `UserInstalls:N` payloads).
+- JSON-LD `<script type="application/ld+json">` with `AggregateRating` → `ratingValue` / `ratingCount`.
+- Inline text patterns: `\d+(?:,\d{3})*\s+(users|downloads|installs|reviews|ratings)\b`.
+- Star markup: class names like `stars-4`, `rating-stars-N`, or `Rated N out of 5 stars`.
+
+**Capture what you find**. The TYPE allows partial values — e.g. `stats.rating = { average: 4.2 }` without `count` is valid; the card renders "4.2★" without the "(N)" suffix. Don't fabricate counts or round averages. If the page only shows a 4-star icon visually but the schema markup says `ratingValue: 4.2`, use 4.2.
+
+## Reviews
+
+If the page has visible user review text, you may copy a handful into `reviews`. Rules:
+
+- **No PII**: never include the reviewer's display name, handle, avatar, or email. Capture rating + body + date only.
+- **Body must be substantive** — a single emoji or "Great!" is fine, but no truncated cut-off text.
+- **English filter applied at render time** — non-Latin scripts get dropped from the homepage carousel automatically, so don't bother translating.
+- **Date as ISO** (`YYYY-MM-DD`) if visible; omit `ts` if not.
+- **Set `source` to the platform key** (`'firefox'`, `'chrome'`, etc.) so the carousel can show "via Firefox" / "via Chrome".
+
+Skip the reviews bucket if the page has none, or all are non-English / single-emoji.
+
+## `asOf`
+
+If the data came from a snapshot (Wayback Machine, the Internet Archive, a cached crawl), set `asOf` to that snapshot's ISO date. It tells the reconcile path how fresh the entry is — and the card uses it as the "last updated" timestamp. Examples:
+
+- `https://web.archive.org/web/20170912104531/…` → `asOf: '2017-09-12'`
+- A current scrape on 2026-06-01 → `asOf: '2026-06-01'`
 
 ### ManualOrigin
 
@@ -174,7 +267,13 @@ The `ManualProject.featured` field exists but is a per-entry shortcut; `config.f
 1. **Confirm which kind** (manual project vs manual origin) — ask if unclear.
 2. **Confirm which file** (committed vs local) — default to local.
 3. **Gather the data**:
-   - For a manual project: `slug`, `title`, `description` minimum. Decide `source` from where the project *actually* lived (see "Picking the right `source`" above — the platform is what determines the chip; never confuse it with the page you're scraping from). Then ask for anything else that makes sense (url, year, tags, kind, and ESPECIALLY media — if the project has a marketing page or screenshots, offer to wire them up via `icon` / `banner` / `screenshots`, otherwise the card renders as a plain initials tile).
+   - For a manual project: `slug`, `title`, `description` minimum. Decide `source` from where the project *actually* lived (see "Picking the right `source`" above — the platform is what determines the chip; never confuse it with the page you're scraping from). Then **systematically check the page for every other field the schema supports** — manual entries are first-class and should carry the same data a connector-emitted card does:
+     - **Media** — `icon`, `banner`, `screenshots` (otherwise the card renders as a plain initials tile);
+     - **Stats** — `users`, `downloads`, `rating` etc. (see "Capturing stats" above; this is the difference between a real-looking card and a description sitting in a box);
+     - **Reviews** — substantive English bodies + dates, no PII (see "Reviews" above);
+     - **Dates** — `year` (first release), `asOf` (snapshot/scrape date);
+     - **Identity / context** — `url`, `homepage`, `sourceUrl`, `tags`, `kind`, `language`.
+     Don't stop at the minimum viable fields. Read the page top to bottom.
    - For a manual origin: the origin resource id (look in `generated/snapshot.json` if the user doesn't know it offhand), and which stat(s) to override with which values.
 4. **Edit the file**. Insert into the right array/object. Match the surrounding indentation/style. The existing config files have commented-out examples — uncomment-style additions are fine.
 5. **Verify** with `npm run build` and a quick inspection of `dist/data.json` for the new entry.

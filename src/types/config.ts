@@ -1,4 +1,4 @@
-import type { CanonicalStats } from './project';
+import type { CanonicalStats, Review } from './project';
 
 /** A manual, authoritative origin fact injected by the builder, keyed by origin
  * resource id (e.g. "google-play:net.wzmn.games.brokencalc"). It enters the
@@ -27,6 +27,10 @@ export type ManualProject = {
   openSource?: boolean;
   /** Canonical source-repo URL. */
   sourceUrl?: string;
+  /** The project's own website (separate from `url`, which is the outbound
+   *  listing link). Drives the homepage chip in the same way connector-
+   *  emitted reps do. */
+  homepage?: string;
   /** Square app/extension icon URL — drives the icon-frame card layout when
    *  no banner/screenshots accompany it. Same constraints as connector-
    *  emitted icons; URLs flow through the media cache when enabled (see
@@ -51,6 +55,30 @@ export type ManualProject = {
    *  `'wordpress'`) → chip reads the auto-capitalised form ("Firefox",
    *  "Edge", "Wordpress"). */
   source?: string;
+  /** Stars / downloads / users / rating numbers scraped from a listing.
+   *  Same shape connector-emitted reps use; surfaced on the card next to
+   *  every other project's stats. See `CanonicalStats` in
+   *  `src/types/project.ts` for the per-field semantics. */
+  stats?: CanonicalStats;
+  /** User reviews (no author PII). Same shape connector-emitted reps use;
+   *  fed into the homepage review carousel if they pass the positive /
+   *  language filter. */
+  reviews?: Review[];
+  /** ISO date marking when the data in this entry was last verified —
+   *  drives the reconcile (freshest wins) and shows up as the "as of"
+   *  date on the card when present. Use the page's snapshot/archive date
+   *  if you scraped one (e.g. Wayback Machine snapshot timestamp). */
+  asOf?: string;
+  /** Mark this project as archived. Archived projects are DROPPED from the
+   *  grid entirely (same as `archived: true` on a connector rep). Use this
+   *  to hide a project without deleting the entry. */
+  archived?: boolean;
+  /** Mark this project as retired but still worth showing. Card stays in
+   *  the grid; the hero's "Active users" total excludes its `stats.users`
+   *  so a stale snapshot count doesn't inflate the headline. Use for
+   *  removed Chrome / Firefox / Edge extensions, taken-down listings,
+   *  apps whose store page is dead but whose history matters. */
+  retired?: boolean;
 };
 
 export type GithubSourceConfig = {

@@ -44,8 +44,18 @@ export type CanonicalStats = {
   installs?: { value: number; exact: boolean };
   /** Current active installs / users (Chrome Web Store). */
   users?: number;
-  /** Store rating. Reconciled, never summed; `histogram` (1★..5★) yields "likes". */
-  rating?: { average: number; count: number; histogram?: number[] };
+  /** Store rating. Reconciled, never summed; `histogram` yields "likes".
+   *
+   *  - `average` — the rating value on the source's own scale (e.g. 4.2 on
+   *    a 5-star site, 8.5 on a 10-point one).
+   *  - `count` — optional; some sources publish only an average.
+   *  - `histogram` — optional per-step breakdown. Length is the scale top:
+   *    a 5-star source emits 5 entries (1★..5★), a 10-point source emits
+   *    10 entries. The "positive" tail is the top 20% of the scale.
+   *  - `max` — scale top (default 5). Set explicitly when the source uses
+   *    a non-5 scale so the "likes" estimator interprets `average` /
+   *    `histogram` correctly. */
+  rating?: { average: number; count?: number; histogram?: number[]; max?: number };
 };
 
 /** Aggregate "I exist over there" metric from a profile source (Stack Overflow,
@@ -119,6 +129,13 @@ export type Representation = {
   /** Source flagged as archived (e.g. GitHub repo archived). Any archived
    * rep in a merged group causes the whole project to be dropped. */
   archived?: boolean;
+  /** Project lives on as a manual / historical entry but is no longer in
+   * active service. Card stays in the grid (unlike `archived`), but
+   * `stats.users` is treated as historical: aggregateStats won't add it
+   * to the hero's "Active users" total. Set on a manual entry for a
+   * retired addon / removed listing whose user count belongs to a past
+   * snapshot. */
+  retired?: boolean;
   /** Canonical source-repo URL, when known. */
   sourceUrl?: string;
   /** The project's own website, distinct from `url`. */
@@ -175,6 +192,11 @@ export type Project = {
   openSource?: boolean;
   /** Canonical source-repo URL when known. */
   sourceUrl?: string;
+  /** Project's no longer in active service (manual entry of a retired
+   * addon, removed listing, etc.). aggregateStats excludes `stats.users`
+   * from the active-user total for retired projects so historical
+   * snapshots don't inflate the headline. */
+  retired?: boolean;
   featured: boolean;
   hasDetail: boolean;
 };

@@ -109,26 +109,66 @@ const config: ProjectsConfig = {
     {
       slug: 'back-to-google',
       title: 'Back to Google',
-      description: "Go back to your last Google results page from your current tab's history list.",
+      description:
+        "Go back to your last Google results page from your current tab's history list.",
+      // Live AMO URL 404s (addon was removed); use the Wayback snapshot
+      // so the card's outbound link actually leads somewhere.
       url: 'https://web.archive.org/web/20170912104531/https://addons.mozilla.org/en-US/firefox/addon/back-to-google/',
       source: 'firefox',
-      tags: ['firefox', 'extension', 'retired'],
-      year: 2009,
       kind: 'extension',
+      language: 'JavaScript',
+      tags: ['firefox', 'extension', 'browser', 'search', 'productivity'],
+      year: 2008,
+      asOf: '2017-09-12',
+      retired: true,
       icon: 'https://web.archive.org/web/20170909200644im_/https://addons.cdn.mozilla.net/user-media/addon_icons/7/7206-64.png?modified=1281033339',
       screenshots: [
         'https://web.archive.org/web/20170909200644im_/https://addons.cdn.mozilla.net/user-media/previews/full/22/22335.png?modified=1331218902',
       ],
+      stats: {
+        users: 223,
+        downloads: 32239,
+        rating: { average: 4.2, count: 15 },
+      },
+      reviews: [
+        {
+          rating: 5,
+          body: 'Works very well. It even works when you delve into the page you branched off to, [I think because it uses the last search history page.] This saves much time normally taken to find the results tab or reopen the thing. Thank you for this Add-on.',
+          ts: '2013-11-05',
+          source: 'firefox',
+        },
+        {
+          rating: 4,
+          body: 'Great idea, but instead of getting one more icon placed in navigation bar, I would like if right-clicking on home button would do the thing!',
+          ts: '2010-12-01',
+          source: 'firefox',
+        },
+        {
+          rating: 5,
+          body: 'I find this a really useful little add on that I use all the time',
+          ts: '2010-10-31',
+          source: 'firefox',
+        },
+        {
+          rating: 4,
+          body: 'Excellent, use it all the time. Would be even better though if when searching Google images it ignored the frame and went all the way back to the results.',
+          ts: '2010-02-02',
+          source: 'firefox',
+        },
+        {
+          rating: 5,
+          body: 'I downloaded this thinking it could be of use in certain situations. Instead, it became a regular part of viewing google results, like the Search and Back buttons. Good thinking.',
+          ts: '2009-07-25',
+          source: 'firefox',
+        },
+        {
+          rating: 5,
+          body: 'One of the handiest addons I have used. :)',
+          ts: '2009-04-20',
+          source: 'firefox',
+        },
+      ],
     },
-    // Example:
-    // {
-    //   slug: 'internal-workflow-tool',
-    //   title: 'Internal Workflow Tool',
-    //   description: 'Custom internal tool for batch operations.',
-    //   url: 'https://example.com',
-    //   tags: ['internal', 'closed-source'],
-    //   year: 2023,
-    // },
   ],
 
   ui: {
