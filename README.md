@@ -72,7 +72,9 @@ See **[docs/connectors.md](docs/connectors.md)** for the connector manifest patt
 
 ## Adding a manual entry
 
-See **[docs/manual-entries.md](docs/manual-entries.md)** for the two shapes of manual entry the config accepts — a `ManualProject` for projects no connector covers (closed-source / retired / not-on-any-platform) and a `ManualOrigin` for authoritative overrides of scraped numbers. The guide is structured so an AI assistant (Claude, Cursor, Cline, etc.) can be pointed at it and walk the user through the right questions.
+See **[docs/skills/add-manual-entry.md](docs/skills/add-manual-entry.md)** for the two shapes of manual entry the config accepts — a `ManualProject` for projects no connector covers (closed-source / retired / not-on-any-platform) and a `ManualOrigin` for authoritative overrides of scraped numbers.
+
+The file lives under [`docs/skills/`](docs/skills/) — a tool-agnostic home for short, action-oriented walkthroughs an AI assistant (Claude, Cursor, Cline, GitHub Copilot Chat, …) or a human contributor can follow. Each skill has YAML frontmatter for machine readability and a markdown body for the actual steps.
 
 ## Advanced: keep some values out of git
 

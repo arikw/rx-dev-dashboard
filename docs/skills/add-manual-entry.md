@@ -1,8 +1,13 @@
+---
+name: add-manual-entry
+description: Add a manual project or authoritative origin fact to the rx-dev-dashboard config. Use when the user wants to surface a project that no connector covers (closed-source / retired / not-on-any-platform) OR override a number that a connector got from a mirror (exact Play Console install total, true first-release year, etc.).
+audience: AI assistants (Claude, Cursor, Cline, GitHub Copilot Chat, …) and humans
+---
+
 # Adding a manual entry to the dashboard
 
-> Guide for AI assistants (Claude, Cursor, Cline, GitHub Copilot Chat, etc.)
-> and humans who want the same walkthrough. Use this when the user wants to
-> add an entry the connectors can't produce automatically:
+> Use this when the user wants to add an entry the connectors can't produce
+> automatically:
 >
 > - a **project** no connector covers (closed-source / retired /
 >   not-on-any-platform), OR
