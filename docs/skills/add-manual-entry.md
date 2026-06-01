@@ -1,6 +1,6 @@
 ---
 name: add-manual-entry
-description: Add a manual project or authoritative origin fact to the rx-dev-dashboard config. Use when the user wants to surface a project that no connector covers (closed-source / retired / not-on-any-platform) OR override a number that a connector got from a mirror (exact Play Console install total, true first-release year, etc.).
+description: Add a manual project or authoritative origin fact to the dashboard config. Use when the user wants to surface a project that no connector covers (closed-source / retired / not-on-any-platform) OR override a number that a connector got from a mirror (exact Play Console install total, true first-release year, etc.).
 audience: AI assistants (Claude, Cursor, Cline, GitHub Copilot Chat, …) and humans
 ---
 
@@ -27,7 +27,7 @@ If unsure, ask the user one clarifying question: *"Is this a brand-new project t
 
 Two config files exist:
 
-- **`projects.config.ts`** — committed to git. Public. **Never put personal identifiers, real names, employer names, or anything sensitive here.** The user's published persona is "Arik W." — committed files keep that pseudonym.
+- **`projects.config.ts`** — committed to git. Public. **Never put personal identifiers, real names, employer names, or anything sensitive here.** Many forks of this dashboard publish under a pseudonym; committed files should match whatever persona the user has established for the public site.
 - **`projects.config.local.ts`** — `.gitignore`d. Safe for real handles, internal product names, sensitive context.
 
 **Default to `projects.config.local.ts`** unless the user explicitly asks for the entry to be public. Both files merge at load time (local overrides committed; the registry's `mergeConfig` handles it).
