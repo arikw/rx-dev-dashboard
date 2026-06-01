@@ -10,6 +10,10 @@ import { resolveIconColors } from './icon-color';
 import { cacheMediaBatch, getFallbackEvents, makeUrlRewriter } from './media-cache';
 
 const FIXTURE_MODE = process.env.CONNECTORS_FIXTURE === '1';
+// config.media.cache opts out of the local image/mp4 cache (default ON).
+// Off → skip downloads + skip the build-time URL rewrite; the dashboard
+// renders upstream URLs verbatim. See projects.config.ts for the doc.
+const MEDIA_CACHE_ENABLED = config.media?.cache !== false;
 
 type ConnectorRunResult =
   | { status: 'fresh' | 'cached'; results: ConnectorResult[]; profile?: ProfileFact }
@@ -35,6 +39,13 @@ function collectMediaUrls(results: ConnectorResult[], profile?: ProfileFact): st
   return out;
 }
 
+/** Download + persist a connector's media URLs if media caching is on.
+ *  No-ops in fixture mode or when config.media.cache is false. */
+async function maybeCache(key: ConnectorKey, urls: string[]): Promise<void> {
+  if (FIXTURE_MODE || !MEDIA_CACHE_ENABLED) return;
+  await cacheMediaBatch(key, urls);
+}
+
 async function runConnector(
   manifest: ConnectorManifest,
   enabled: boolean,
@@ -44,21 +55,21 @@ async function runConnector(
   const key = manifest.key as ConnectorKey;
   if (!enabled) {
     const cached = snapshot.connectors[key];
-    if (cached && !FIXTURE_MODE) await cacheMediaBatch(key, collectMediaUrls(cached.results));
+    if (cached) await maybeCache(key, collectMediaUrls(cached.results));
     return cached ? { status: 'cached', results: cached.results } : { status: 'empty' };
   }
   try {
     const out = await manifest.fetch(config, { fixtureMode: FIXTURE_MODE });
     const results = out.projects ?? [];
     snapshot.connectors[key] = { lastScrapedAt: now, results };
-    if (!FIXTURE_MODE) await cacheMediaBatch(key, collectMediaUrls(results, out.profile));
+    await maybeCache(key, collectMediaUrls(results, out.profile));
     return { status: 'fresh', results, profile: out.profile };
   } catch (err) {
     console.warn(`[loader] connector "${key}" failed:`, err);
     const cached = snapshot.connectors[key];
     if (cached) {
       console.warn(`[loader] falling back to cached "${key}" data from ${cached.lastScrapedAt}`);
-      if (!FIXTURE_MODE) await cacheMediaBatch(key, collectMediaUrls(cached.results));
+      await maybeCache(key, collectMediaUrls(cached.results));
       return { status: 'cached', results: cached.results };
     }
     return { status: 'empty' };
@@ -101,7 +112,12 @@ async function loadOnce(): Promise<Project[]> {
     .filter((p): p is ProfileFact => !!p);
 
   const connectorResults = results.flatMap((r) => (r.status === 'empty' ? [] : r.results));
-  const all = [...connectorResults, ...manualToResults(config), ...manualOrigins()];
+  const manualResults = manualToResults(config);
+  const all = [...connectorResults, ...manualResults, ...manualOrigins()];
+
+  // Manual entries don't go through runConnector, so cache their media here.
+  // Stored under the `manual` connector key like any other source.
+  await maybeCache('manual' as ConnectorKey, collectMediaUrls(manualResults));
 
   const built = buildProjects(all);
 
@@ -134,18 +150,21 @@ async function loadOnce(): Promise<Project[]> {
     }
   }
 
-  // Swap original upstream URLs for local served paths when the media-cache
-  // has a mapping. Connectors emit ORIGINAL URLs (so the raw scrape stays
-  // diagnosable); the dashboard publishes the local copy.
-  const rewrite = makeUrlRewriter(config.deployment.base);
-  for (const p of built) {
-    if (p.banner) p.banner = rewrite(p.banner);
-    if (p.icon) p.icon = rewrite(p.icon);
-    if (p.screenshots) p.screenshots = p.screenshots.map((u) => rewrite(u) ?? u);
-    if (p.videos) p.videos = p.videos.map((u) => rewrite(u) ?? u);
-  }
-  for (const pf of lastProfiles) {
-    if (pf.avatar) pf.avatar = rewrite(pf.avatar);
+  // Swap original upstream URLs for local served paths when the media cache
+  // has a mapping. Connectors always emit ORIGINAL URLs (so the raw scrape
+  // stays diagnosable); the dashboard publishes the local copy only when
+  // caching is enabled — otherwise upstream URLs pass through verbatim.
+  if (MEDIA_CACHE_ENABLED) {
+    const rewrite = makeUrlRewriter(config.deployment.base);
+    for (const p of built) {
+      if (p.banner) p.banner = rewrite(p.banner);
+      if (p.icon) p.icon = rewrite(p.icon);
+      if (p.screenshots) p.screenshots = p.screenshots.map((u) => rewrite(u) ?? u);
+      if (p.videos) p.videos = p.videos.map((u) => rewrite(u) ?? u);
+    }
+    for (const pf of lastProfiles) {
+      if (pf.avatar) pf.avatar = rewrite(pf.avatar);
+    }
   }
 
   // Which slugs have a matching MDX detail page?

@@ -40,21 +40,29 @@ If `projects.config.local.ts` doesn't exist yet, the user is editing the committ
 
 ```ts
 type ManualProject = {
-  slug: string;          // REQUIRED. Stable id, used as the card id. kebab-case.
-  title: string;         // REQUIRED. Display name.
-  description: string;   // REQUIRED. One sentence. Used in the card body.
-  url?: string;          // Outbound link (live demo, docs, marketing page).
-  tags?: string[];       // Filter chips on the dashboard.
-  year?: number;         // First-release year. Shown as 📅 YYYY in card stats.
-  featured?: boolean;    // Pin to the Featured row. See "Featured pinning" below.
-  language?: string;     // Primary language. Optional.
-  kind?: string;         // Free-form. Recognised values: 'app' | 'library' | 'package' | 'cli' | 'extension' | 'mobile' | 'image' | 'other'.
-  openSource?: boolean;  // When omitted, `sourceUrl` presence implies true.
-  sourceUrl?: string;    // Canonical source-repo URL.
+  slug: string;            // REQUIRED. Stable id, used as the card id. kebab-case.
+  title: string;           // REQUIRED. Display name.
+  description: string;     // REQUIRED. One sentence. Used in the card body.
+  url?: string;            // Outbound link (live demo, docs, marketing page).
+  tags?: string[];         // Filter chips on the dashboard.
+  year?: number;           // First-release year. Shown as 📅 YYYY in card stats.
+  featured?: boolean;      // Pin to the Featured row. See "Featured pinning" below.
+  language?: string;       // Primary language. Optional.
+  kind?: string;           // Free-form. Recognised values: 'app' | 'library' | 'package' | 'cli' | 'extension' | 'mobile' | 'image' | 'other'.
+  openSource?: boolean;    // When omitted, `sourceUrl` presence implies true.
+  sourceUrl?: string;      // Canonical source-repo URL.
+  // Media — when any of these are set, the card uses a richer thumb
+  // layout instead of the brand-mark/initials fallback. See
+  // "Media on manual projects" below for details + how the cache
+  // interacts with each one.
+  icon?: string;           // Square logo/app icon URL. Triggers the icon-frame layout.
+  banner?: string;         // Wide promo / marketing tile URL. Triggers the banner layout.
+  screenshots?: string[];  // Phone/screen captures. Paired with `icon` → screenshot+icon stack.
+  videos?: string[];       // Trailer URLs (direct .mp4 — cached; YouTube embed — pass-through).
 };
 ```
 
-Minimum viable entry: `{ slug, title, description }`. Everything else is optional.
+Minimum viable entry: `{ slug, title, description }`. Everything else is optional. Without any of `icon`/`banner`/`screenshots`, the card falls back to a generic initials-on-gradient thumb.
 
 ### ManualOrigin
 
@@ -91,6 +99,31 @@ Subset of `CanonicalStats` you'd actually override manually:
 }
 ```
 
+## Media on manual projects
+
+A manual entry can supply `icon`, `banner`, `screenshots`, and/or `videos` — same buckets a real connector emits. The card layout adapts:
+
+| Fields you set | Card layout |
+|---|---|
+| `banner` | full-width banner image |
+| `screenshots` + `icon` | screenshot background with icon overlay |
+| `icon` only | square icon on a coloured backplate (sampled from the icon) |
+| `screenshots` only | first screenshot as banner |
+| *(nothing)* | brand-mark or initials-on-gradient fallback |
+
+**Where the images live**: any reachable URL. Three good choices, by preference:
+
+1. **A URL hosted on a CDN you control** (your own GitHub Pages, an S3 bucket, etc.) — most robust. Goes through the build-time media cache (see README "Build-time media cache"): on first build the bytes are downloaded into `public/_cache/manual/<hash>.<ext>` and the dashboard rewrites the card URL to the local copy. Survives upstream link rot.
+2. **A path under `public/` in this repo** — for projects whose images you'd rather check into the repo directly. E.g. drop `public/manual-media/<slug>.png`, then set `icon: '/manual-media/<slug>.png'`. The dashboard's `import.meta.env.BASE_URL` isn't prepended by the loader, so write the path with the deployment base included (e.g. `'/projects/manual-media/<slug>.png'` for a `/projects/` deployment). Skips the cache (already local).
+3. **An upstream URL you don't control** (a project's marketing site, etc.) — works but at the mercy of the upstream. With caching on (the default) this is fine — first build snapshots it. With caching off, the dashboard hot-links and breaks if the URL goes away.
+
+**Videos**: only direct `.mp4` URLs get cached. YouTube embed URLs (`https://www.youtube.com/embed/<id>?…`) are passed through to the dashboard as-is — the carousel / card UI knows what to do with them. To cache an actual YouTube video locally, see `docs/skills/cache-media.md` (yt-dlp recipe).
+
+**Don't forget the rebuild**: media URLs are processed by `cacheMedia` at build time. After adding new image fields, run `npm run build` and confirm:
+
+- The new entry's image fields in `dist/data.json` either start with `/<base>/_cache/manual/…` (when cached) or are the verbatim URL/path you wrote (when caching is off or for `/public/`-path entries).
+- The corresponding files exist under `public/_cache/manual/` when the cache caught them.
+
 ## Featured pinning
 
 `config.featured: string[]` is a separate top-level array of slugs/ids that pins matching projects to the Featured row. Works for any project, not just manual ones — match against:
@@ -109,7 +142,7 @@ The `ManualProject.featured` field exists but is a per-entry shortcut; `config.f
 1. **Confirm which kind** (manual project vs manual origin) — ask if unclear.
 2. **Confirm which file** (committed vs local) — default to local.
 3. **Gather the data**:
-   - For a manual project: `slug`, `title`, `description` minimum. Ask for anything else that makes sense (url, year, tags, kind).
+   - For a manual project: `slug`, `title`, `description` minimum. Ask for anything else that makes sense (url, year, tags, kind, and ESPECIALLY media — if the project has a marketing page or screenshots, offer to wire them up via `icon` / `banner` / `screenshots`, otherwise the card renders as a plain initials tile).
    - For a manual origin: the origin resource id (look in `generated/snapshot.json` if the user doesn't know it offhand), and which stat(s) to override with which values.
 4. **Edit the file**. Insert into the right array/object. Match the surrounding indentation/style. The existing config files have commented-out examples — uncomment-style additions are fine.
 5. **Verify** with `npm run build` and a quick inspection of `dist/data.json` for the new entry.

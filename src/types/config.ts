@@ -27,6 +27,21 @@ export type ManualProject = {
   openSource?: boolean;
   /** Canonical source-repo URL. */
   sourceUrl?: string;
+  /** Square app/extension icon URL — drives the icon-frame card layout when
+   *  no banner/screenshots accompany it. Same constraints as connector-
+   *  emitted icons; URLs flow through the media cache when enabled (see
+   *  README "Build-time media cache"). */
+  icon?: string;
+  /** Wide promotional banner URL (e.g. screenshot/marketing tile). When
+   *  present, drives the banner card layout. */
+  banner?: string;
+  /** Phone/screen capture URLs surfaced alongside the project (renders the
+   *  screenshot+icon stack layout when paired with `icon`). */
+  screenshots?: string[];
+  /** Trailer / demo video URLs. Direct `.mp4` URLs get cached locally;
+   *  YouTube embed URLs (`https://www.youtube.com/embed/<id>?…`) pass
+   *  through to the dashboard as upstream embeds. */
+  videos?: string[];
 };
 
 export type GithubSourceConfig = {
@@ -104,8 +119,24 @@ export type DeploymentConfig = {
   format?: 'file' | 'directory' | 'preserve';
 };
 
+/** Build-time media handling — local cache of images and MP4 videos that
+ * connectors reference. See `projects.config.ts` for the operator-facing
+ * documentation. */
+export type MediaConfig = {
+  /** When true (default), connector-emitted image / mp4 URLs are downloaded
+   *  into `public/_cache/<connector>/` and the dashboard rewrites Project /
+   *  ProfileFact URLs to the local copies. When false, the build skips the
+   *  download + rewrite step entirely and the dashboard serves upstream
+   *  URLs directly — faster builds, no local cache committed by CI, but
+   *  every page render hits the upstream CDNs and the site breaks if
+   *  upstream link-rots. */
+  cache?: boolean;
+};
+
 export type ProjectsConfig = {
   deployment: DeploymentConfig;
+  /** Build-time media handling. Optional — sensible defaults apply when omitted. */
+  media?: MediaConfig;
   meta: {
     siteTitle: string;
     siteDescription: string;

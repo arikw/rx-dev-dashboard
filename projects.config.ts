@@ -22,6 +22,13 @@ const config: ProjectsConfig = {
     format: 'directory',
   },
 
+  // Build-time media cache. See README "Build-time media cache" for the
+  // full explanation. Default `true` — set `cache: false` to skip the
+  // local image / MP4 download and serve upstream URLs verbatim instead.
+  media: {
+    cache: true,
+  },
+
   meta: {
     siteTitle: 'Dev Projects',
     siteDescription: 'A dev project showcase + impact dashboard.',

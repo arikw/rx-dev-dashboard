@@ -76,9 +76,19 @@ See **[docs/skills/add-manual-entry.md](docs/skills/add-manual-entry.md)** for t
 
 The file lives under [`docs/skills/`](docs/skills/) — a tool-agnostic home for short, action-oriented walkthroughs an AI assistant (Claude, Cursor, Cline, GitHub Copilot Chat, …) or a human contributor can follow. Each skill has YAML frontmatter for machine readability and a markdown body for the actual steps.
 
-## Caching external media
+## Build-time media cache
 
-The build downloads connector-referenced images and MP4 videos into a local cache under `public/_cache/<connector>/` and rewrites Project / ProfileFact image URLs at build time to the local copies. The raw scrape under `generated/.cache/<connector>/data.json` keeps the original upstream URLs so the snapshot stays diagnosable. See **[docs/skills/cache-media.md](docs/skills/cache-media.md)** for the cache layout, the url-map shape, and patterns for extending the cache (e.g. downloading YouTube trailers via `yt-dlp` and pointing the map at the local MP4).
+Every image and MP4 video a connector references is downloaded into `public/_cache/<connector>/<hash>.<ext>` at build time, and the dashboard rewrites Project / ProfileFact URLs to those local copies. The raw scrape under `generated/.cache/<connector>/data.json` keeps the ORIGINAL upstream URLs so the snapshot stays diagnosable. The CI cron (`.github/workflows/deploy.yml`) commits both `generated/` and `public/_cache/` back to the repo so subsequent builds are fast and the deployed site survives upstream link rot.
+
+**Config knob — `media.cache` in `projects.config.ts`** (default: `true`)
+
+Set `media: { cache: false }` to disable the cache entirely. Connectors will emit upstream URLs and the dashboard will serve them directly. Faster builds and no local bytes get committed, but every page render hits the upstream CDNs and the site breaks if any upstream URL goes away. Useful when:
+
+- the catalogue is large enough that the cache would noticeably bloat the repo,
+- the CI runner can't reach the upstream CDNs (private network, etc.),
+- or you'd rather rely on browser-side caching only.
+
+See **[docs/skills/cache-media.md](docs/skills/cache-media.md)** for the cache layout, the `url-map.json` shape, and patterns for extending the cache (e.g. transcoding YouTube trailers to local MP4 via `yt-dlp` and pointing the map at the result).
 
 ## Advanced: keep some values out of git
 
