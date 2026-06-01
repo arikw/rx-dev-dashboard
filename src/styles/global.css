@@ -529,6 +529,18 @@ button {
   }
 }
 
+/* Thin centred rule placed between major sections (currently between the
+   project grid and the review carousel) — narrower than the page width so
+   it reads as a section break, not a hard page rule. */
+.section-divider {
+  width: 100%;
+  max-width: 480px;
+  height: 1px;
+  border: 0;
+  background: var(--border);
+  margin: 0 auto 48px;
+}
+
 /* Build timestamp — page metadata. Lives at the very bottom of the page so
    it doesn't accidentally act as a divider between major content sections
    (which is how it read when nested inside the hero). */
@@ -1234,9 +1246,13 @@ a.card-source:hover {
 /* Author bio: footer-style block under the project grid */
 .author-bio {
   max-width: 64ch;
-  /* Previous section (carousel / grid) provides the 48px gap above via its
-     own margin-bottom; AuthorBio sits flush with no top margin of its own. */
-  margin: 0 auto 0;
+  /* Sit well below the standard 48px section rhythm so the author bio
+     reads as a tail-piece after the content-heavy review carousel.
+     Vertical margins collapse against the carousel's `margin-bottom:
+     48px`, so this value IS the rendered gap (not additive). Fluid
+     from 48 px on narrow phones up to 144 px on full desktop —
+     scales with viewport width via `12vw` between the two clamps. */
+  margin: clamp(48px, 12vw, 144px) auto 0;
   padding: 24px 28px;
   border: 1px solid var(--border);
   border-radius: 10px;

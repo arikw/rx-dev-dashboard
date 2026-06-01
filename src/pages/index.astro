@@ -74,6 +74,9 @@ const carouselReviews = pickCarouselReviews(allProjects, 10);
   <ProfilePresence profiles={profiles} />
   {config.meta.siteAbout && <SiteAbout markdown={config.meta.siteAbout} />}
   <ProjectGrid projects={sortedAll} pageSize={config.ui.pageSize} />
+  {carouselReviews.length > 0 && (
+    <hr class="section-divider" aria-hidden="true" />
+  )}
   <ReviewCarousel reviews={carouselReviews} />
   {config.user.bio && <AuthorBio name={config.user.name} bio={config.user.bio} avatar={profileImage} />}
   <footer class="site-foot">
