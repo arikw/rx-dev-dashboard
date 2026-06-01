@@ -79,6 +79,14 @@ export type ManualProject = {
    *  removed Chrome / Firefox / Edge extensions, taken-down listings,
    *  apps whose store page is dead but whose history matters. */
   retired?: boolean;
+  /** Explicit cross-platform identity pointer. Set to the id of an
+   *  existing project that this manual entry is the same project as —
+   *  the builder will merge the two into one card. Useful for porting
+   *  the same addon across browsers, or a CLI that ships as both an npm
+   *  package and a Docker image. Accepts a bare id (e.g. the 32-char
+   *  Chrome extension id `'mcdpnidfhfjfbafmpppcplcejgepadbo'`), a
+   *  `platform:id` form (`'chrome:mcdpn…'`), or an array of either. */
+  relatesToProjectId?: string | string[];
 };
 
 export type GithubSourceConfig = {

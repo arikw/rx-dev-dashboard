@@ -28,8 +28,11 @@ export type ProjectKind =
  *
  * Additivity (how the builder combines a metric across a project's sources):
  *  - `stars`, `forks`, `downloads`, `installs`, `users` — additive (summed).
- *  - `rating` — NOT additive (reconciled to one for display); its histogram
- *    yields the summable "likes" (4–5★ count).
+ *  - `rating` — reconciled within a single origin (mirrors all describe the
+ *    same audience, so the best signal wins); summed across DIFFERENT origin
+ *    resources (e.g. a Firefox port + a Chrome port merged via
+ *    `relatesToProjectId` — those are distinct audiences). Histograms combine
+ *    element-wise, averages become count-weighted means.
  */
 export type CanonicalStats = {
   /** Favorites / endorsements (GitHub stars, Docker Hub stars). */
@@ -44,7 +47,10 @@ export type CanonicalStats = {
   installs?: { value: number; exact: boolean };
   /** Current active installs / users (Chrome Web Store). */
   users?: number;
-  /** Store rating. Reconciled, never summed; `histogram` yields "likes".
+  /** Store rating. Reconciled within an origin bucket (mirrors of the same
+   *  audience — the highest-count signal wins); summed across separate
+   *  origin resources (distinct audiences — see `CanonicalStats` doc above).
+   *  `histogram` yields "likes".
    *
    *  - `average` — the rating value on the source's own scale (e.g. 4.2 on
    *    a 5-star site, 8.5 on a 10-point one).
@@ -129,6 +135,14 @@ export type Representation = {
   /** Source flagged as archived (e.g. GitHub repo archived). Any archived
    * rep in a merged group causes the whole project to be dropped. */
   archived?: boolean;
+  /** Explicit "this rep is the same project as <other rep's id>" pointer(s).
+   * The builder uses these to merge cross-platform ports that don't share
+   * a URL / homepage / slug — e.g. a manual Firefox-addon entry pointing
+   * at the Chrome extension id so the two cards collapse into one. Plain
+   * ids (just the right-hand side of `origin.id`) or `platform:id` forms
+   * are both accepted; the builder matches against any other rep's
+   * `origin.id` OR `platform:id`. */
+  relatesToProjectId?: string | string[];
   /** Project lives on as a manual / historical entry but is no longer in
    * active service. Card stays in the grid (unlike `archived`), but
    * `stats.users` is treated as historical: aggregateStats won't add it

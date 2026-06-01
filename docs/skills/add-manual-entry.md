@@ -23,16 +23,29 @@ There are **two** kinds of manual entries. Figure out which one the user needs b
 
 If unsure, ask the user one clarifying question: *"Is this a brand-new project the dashboard has never heard of (manual project), or are you correcting / enriching a number on a project that's already there (manual origin)?"*
 
-## Where the files live
+## Where the files live — READ THIS BEFORE WRITING ANYTHING
 
 Two config files exist:
 
-- **`projects.config.ts`** — committed to git. Public. **Never put personal identifiers, real names, employer names, or anything sensitive here.** Many forks of this dashboard publish under a pseudonym; committed files should match whatever persona the user has established for the public site.
-- **`projects.config.local.ts`** — `.gitignore`d. Safe for real handles, internal product names, sensitive context.
+- **`projects.config.ts`** — committed to git. Public. **Never put personal identifiers, real names, employer names, scraped reviews / archive snapshots of personal projects, or anything sensitive here.** Many forks of this dashboard publish under a pseudonym; committed files should match whatever persona the user has established for the public site.
+- **`projects.config.local.ts`** — `.gitignore`d. Safe for real handles, internal product names, sensitive context, anything tied to the dashboard owner's personal identity.
 
-**Default to `projects.config.local.ts`** unless the user explicitly asks for the entry to be public. Both files merge at load time (local overrides committed; the registry's `mergeConfig` handles it).
+**Default to `projects.config.local.ts`.** This is not a soft preference — it's the rule. A manual project is almost always personal context (your own retired addon, a project you shipped, a closed-source tool you built). Putting it in the committed file pollutes the template for every fork.
 
-If `projects.config.local.ts` doesn't exist yet, the user is editing the committed config — ask first: *"This will go into the public, committed `projects.config.ts`. Want me to put it in `projects.config.local.ts` (gitignored) instead?"*
+Only ever write to `projects.config.ts` if the user **explicitly** says so in the current turn — e.g. *"add it to the committed config"*, *"put it in projects.config.ts"*. Phrases like *"add it to the config"*, *"the manual array"*, *"my dashboard"* are ambiguous and default to local.
+
+If `projects.config.local.ts` doesn't exist yet, create it from the canonical pattern (look at the file the user committed during initial setup OR at the worked example below).
+
+`projects.config.local.ts` is loaded via `import.meta.glob('../../projects.config.local.*')` and shallow-merges over `projects.config.ts`. The `manual` array key, like the rest of the top-level config, is **replaced** by whatever the local file declares — so put the full list there, not just the entries you want to add. If you need to extend the base, spread `baseConfig.manual` first:
+
+```ts
+manual: [
+  ...baseConfig.manual,
+  { slug: 'my-retired-addon', /* … */ },
+],
+```
+
+If the user has already populated `projects.config.local.ts`, append to its existing `manual: [...]` array instead of overwriting it.
 
 ## Schemas (canonical — match the TypeScript types)
 
@@ -97,6 +110,14 @@ type ManualProject = {
   // Chrome / Firefox / Edge extensions, taken-down listings, archived
   // addon pages, etc.
   retired?: boolean;
+  // Explicit cross-platform identity pointer. Set to the id of a
+  // project the dashboard already has so the builder merges the two
+  // into one card. Use when the same addon was shipped on multiple
+  // platforms (Firefox port + Chrome port, etc.) and they share no
+  // url / homepage / slug. Accepts a bare id (e.g. the 32-char Chrome
+  // extension id 'mcdpnidfhfjfbafmpppcplcejgepadbo'), a platform:id
+  // form ('chrome:mcdpn…'), or an array of either.
+  relatesToProjectId?: string | string[];
 };
 ```
 
@@ -130,6 +151,21 @@ Heuristics for the AI assistant adding the entry:
 - **Don't invent a key when the connector exists.** Use `'github'`, NOT `'gh'` or `'github-pages'`, when the project lived as a GitHub repo.
 
 Acceptable to leave `source` omitted only if the project genuinely had no public host (closed-source internal tool, retired binary, conference talk, etc.) — those legitimately read as "PORTFOLIO".
+
+## Merging cross-platform ports
+
+If the manual entry is a different-platform port of an addon the dashboard already covers (e.g. a retired Firefox port of a Chrome extension that the chrome / chromestats connector also surfaces), set `relatesToProjectId` to the other project's id so the builder collapses them into one card with two source chips.
+
+How to identify the target id:
+
+- For a Chrome extension: the 32-char extension id (e.g. `'mcdpnidfhfjfbafmpppcplcejgepadbo'`).
+- For an npm package: the package name.
+- For a GitHub repo: the repo name.
+- For anything else: look in `generated/snapshot.json` for the existing project's `origin.id`.
+
+The bare id is enough in most cases. Use the `platform:id` form (`'chrome:mcdpn…'`) when an id might be ambiguous (e.g. `'foo'` could clash with a manual slug).
+
+When the merge happens, the card's identity (id / title / display URL) follows existing rank rules — the chrome/npm/docker side typically wins the title, the manual rep contributes the platform chip + any unique data (additional screenshots, reviews, an `asOf` snapshot date, etc.).
 
 ## Picking `url` for a retired / removed project
 
@@ -265,7 +301,7 @@ The `ManualProject.featured` field exists but is a per-entry shortcut; `config.f
 ## How to add an entry — step by step
 
 1. **Confirm which kind** (manual project vs manual origin) — ask if unclear.
-2. **Confirm which file** (committed vs local) — default to local.
+2. **Which file**: **`projects.config.local.ts` by default — no question asked.** Only write to `projects.config.ts` if the user explicitly named it this turn. See "Where the files live" above.
 3. **Gather the data**:
    - For a manual project: `slug`, `title`, `description` minimum. Decide `source` from where the project *actually* lived (see "Picking the right `source`" above — the platform is what determines the chip; never confuse it with the page you're scraping from). Then **systematically check the page for every other field the schema supports** — manual entries are first-class and should carry the same data a connector-emitted card does:
      - **Media** — `icon`, `banner`, `screenshots` (otherwise the card renders as a plain initials tile);

@@ -36,7 +36,10 @@ const stats: CardStat[] = [];
 const st = p.stats;
 if (st.stars && st.stars > 0)
   stats.push({ text: formatStat(st.stars), title: 'Stars (GitHub + Docker Hub)', icon: 'star' });
-if (st.users && st.users > 0)
+// Skip the active-users badge for retired projects — the count is a
+// historical snapshot (e.g. an AMO Wayback figure), so showing it next to
+// the live-extension headcount would conflate two different metrics.
+if (st.users && st.users > 0 && !p.retired)
   stats.push({ text: formatStat(st.users), title: 'Weekly active users (Chrome Web Store)', icon: 'users' });
 if (st.downloads && st.downloads > 0)
   stats.push({ text: formatStat(st.downloads), title: 'Downloads / pulls (npm, Docker, GNOME, mirrors)', icon: 'download' });

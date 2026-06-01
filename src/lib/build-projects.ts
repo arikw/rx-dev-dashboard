@@ -104,6 +104,37 @@ const homepagesOf = (r: ConnectorResult): string[] =>
     .map((rep) => canonUrl(rep.homepage))
     .filter((c): c is string => !!c);
 
+/** Explicit cross-project identity pointers a result declares via
+ *  `relatesToProjectId`. Returned as `platform:id` strings when the source
+ *  qualified the platform, plain ids otherwise. */
+function relationKeys(r: ConnectorResult): string[] {
+  const out: string[] = [];
+  for (const rep of repsOf(r)) {
+    const v = rep.relatesToProjectId;
+    if (!v) continue;
+    const items = Array.isArray(v) ? v : [v];
+    for (const item of items) {
+      const s = item.trim();
+      if (s) out.push(s);
+    }
+  }
+  return out;
+}
+
+/** Identity tokens a result exposes that others can point at via
+ *  `relatesToProjectId`. Each rep contributes both its bare id (so
+ *  pointer can be `'mcdpn...'`) and its `platform:id` form (so it can be
+ *  `'chrome:mcdpn...'`). */
+function relationTargets(r: ConnectorResult): string[] {
+  const out: string[] = [];
+  for (const rep of repsOf(r)) {
+    if (!rep.id) continue;
+    out.push(rep.id);
+    if (rep.platform) out.push(`${rep.platform}:${rep.id}`);
+  }
+  return out;
+}
+
 function sameProject(a: ConnectorResult, b: ConnectorResult): boolean {
   const ak = originKey(a);
   const bk = originKey(b);
@@ -126,6 +157,19 @@ function sameProject(a: ConnectorResult, b: ConnectorResult): boolean {
   const bIds = identityUrls(b);
   if (homepagesOf(a).some((h) => bIds.includes(h))) return true;
   if (homepagesOf(b).some((h) => aIds.includes(h))) return true;
+
+  // Explicit `relatesToProjectId` pointer — symmetric: either side declaring
+  // the other's id (bare or platform-qualified) collapses them into one
+  // project. Lets a manual entry merge with a connector-emitted card when
+  // they share no URLs, slug, or homepage (e.g. a ported addon).
+  const aRel = relationKeys(a);
+  const bRel = relationKeys(b);
+  if (aRel.length || bRel.length) {
+    const aTargets = relationTargets(a);
+    const bTargets = relationTargets(b);
+    if (aRel.some((r) => bTargets.includes(r))) return true;
+    if (bRel.some((r) => aTargets.includes(r))) return true;
+  }
   return false;
 }
 
@@ -245,8 +289,41 @@ function buildProject(group: ConnectorResult[]): Project {
       exact: installContribs.every((c) => c.installs?.exact),
     };
   }
+  // Rating combine: each contribution comes from a SEPARATE origin resource
+  // (mirrors of the same origin were already reconciled to one within their
+  // bucket). Different origin resources mean different audiences — a
+  // Firefox port's raters and a Chrome port's raters don't overlap — so
+  // their ratings ARE additive across buckets. Sum histograms element-
+  // wise, sum counts, recompute the average as the count-weighted mean.
+  // Falls back to a simple pick when histograms / counts are partial.
   const ratings = contributions.map((c) => c.rating).filter((r): r is NonNullable<typeof r> => !!r);
-  if (ratings.length) stats.rating = ratings.sort((a, b) => (b.count ?? 0) - (a.count ?? 0))[0];
+  if (ratings.length === 1) {
+    stats.rating = ratings[0];
+  } else if (ratings.length > 1) {
+    let totalCount = 0;
+    let weightedSum = 0;
+    const histogram = [0, 0, 0, 0, 0];
+    let anyHistogram = false;
+    for (const r of ratings) {
+      const c = r.count ?? 0;
+      if (c > 0) {
+        totalCount += c;
+        weightedSum += r.average * c;
+      }
+      if (r.histogram) {
+        anyHistogram = true;
+        for (let i = 0; i < Math.min(histogram.length, r.histogram.length); i++) {
+          histogram[i] += r.histogram[i] ?? 0;
+        }
+      }
+    }
+    const average = totalCount > 0 ? weightedSum / totalCount : ratings[0].average;
+    stats.rating = {
+      average,
+      ...(totalCount > 0 ? { count: totalCount } : {}),
+      ...(anyHistogram ? { histogram } : {}),
+    };
+  }
 
   // 4) Identity from the best origin (lowest platform rank).
   const allReps = group.flatMap(repsOf);
