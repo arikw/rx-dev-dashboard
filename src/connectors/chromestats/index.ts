@@ -7,7 +7,7 @@ import { scrapeOne, scrapeReviewsPage, type ChromeStatsApp } from './scrape';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-const CACHE_PATH = 'generated/chrome-stats.json';
+const CACHE_PATH = 'generated/.cache/chromestats/data.json';
 
 type ChromeStatsCache = { version: 1; _generated: string; apps: Record<string, ChromeStatsApp> };
 
@@ -29,7 +29,10 @@ export const fetchChromestatsProjects: Connector = async (config, options) => {
   cache._generated = NOTE;
 
   for (const id of extensionIds) {
-    if (!cache.apps[id]) {
+    // Re-scrape if entry is absent OR is missing fields that were added later
+    // (e.g. `logo`, which earlier scrapes didn't capture). The scraper is the
+    // only place these come from — backfilling them from /reviews won't work.
+    if (!cache.apps[id] || !cache.apps[id].logo) {
       const app = await scrapeOne(id);
       if (app) cache.apps[id] = app;
       await sleep(300);
@@ -75,6 +78,10 @@ export const fetchChromestatsProjects: Connector = async (config, options) => {
         // chrome-stats supplies the real promo banners CWS displays at the top
         // of a listing — prefer the marquee (1400×560), fall back to small.
         banner: a.marqueeBanner ?? a.smallBanner,
+        // Square 128×128 extension icon, captured even when CWS itself has
+        // removed the listing — chrome.ts returns null for those, so this
+        // mirror is the only icon source for deleted extensions.
+        icon: a.logo,
         videos: a.videos,
         reviews: a.reviews,
         stats: {

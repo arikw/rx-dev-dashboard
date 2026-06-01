@@ -2,8 +2,8 @@ import { readJsonCache, writeJsonCache } from '../../lib/json-cache';
 
 // GitHub Pages cache. Once we've fetched a repo's pages site and pulled its
 // favicon URL + <title>, it's frozen — both rarely change. Delete
-// generated/github-pages.json to force a refresh.
-const PAGES_CACHE_PATH = 'generated/github-pages.json';
+// generated/.cache/github/pages.json to force a refresh.
+const PAGES_CACHE_PATH = 'generated/.cache/github/pages.json';
 export type PagesEntry = { pagesUrl: string; favicon: string | null; title: string | null };
 type PagesCache = { version: 1; _generated: string; pages: Record<string, PagesEntry> };
 const PAGES_CACHE_NOTE =

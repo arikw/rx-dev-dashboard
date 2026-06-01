@@ -31,7 +31,7 @@ export type NpmDownloadsCache = {
   packages: Record<string, PackageDownloads>;
 };
 
-const CACHE_PATH = resolve(process.cwd(), 'generated/npm-downloads.json');
+const CACHE_PATH = resolve(process.cwd(), 'generated/.cache/npm/downloads.json');
 const NOTE =
   'Auto-generated download cache. Do not hand-edit. Per year: downloads, or -1 = refetch needed.';
 

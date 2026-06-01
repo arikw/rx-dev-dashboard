@@ -7,6 +7,7 @@ import { getAll } from '../connectors/_registry';
 import type { ConnectorManifest } from '../connectors/_define';
 import { readSnapshot, writeSnapshot, type ConnectorKey, type SnapshotFile } from './snapshot-store';
 import { resolveIconColors } from './icon-color';
+import { cacheMediaBatch, getFallbackEvents, makeUrlRewriter } from './media-cache';
 
 const FIXTURE_MODE = process.env.CONNECTORS_FIXTURE === '1';
 
@@ -18,6 +19,22 @@ let memo: Promise<Project[]> | null = null;
 let lastSnapshot: SnapshotFile | null = null;
 let lastProfiles: ProfileFact[] = [];
 
+/** Collect every image / video URL a connector's results + profile reference. */
+function collectMediaUrls(results: ConnectorResult[], profile?: ProfileFact): string[] {
+  const out: string[] = [];
+  for (const r of results) {
+    for (const rep of [r.origin, r.mirror, r.native]) {
+      if (!rep) continue;
+      if (rep.banner) out.push(rep.banner);
+      if (rep.icon) out.push(rep.icon);
+      if (rep.screenshots) out.push(...rep.screenshots);
+      if (rep.videos) out.push(...rep.videos);
+    }
+  }
+  if (profile?.avatar) out.push(profile.avatar);
+  return out;
+}
+
 async function runConnector(
   manifest: ConnectorManifest,
   enabled: boolean,
@@ -27,18 +44,21 @@ async function runConnector(
   const key = manifest.key as ConnectorKey;
   if (!enabled) {
     const cached = snapshot.connectors[key];
+    if (cached && !FIXTURE_MODE) await cacheMediaBatch(key, collectMediaUrls(cached.results));
     return cached ? { status: 'cached', results: cached.results } : { status: 'empty' };
   }
   try {
     const out = await manifest.fetch(config, { fixtureMode: FIXTURE_MODE });
     const results = out.projects ?? [];
     snapshot.connectors[key] = { lastScrapedAt: now, results };
+    if (!FIXTURE_MODE) await cacheMediaBatch(key, collectMediaUrls(results, out.profile));
     return { status: 'fresh', results, profile: out.profile };
   } catch (err) {
     console.warn(`[loader] connector "${key}" failed:`, err);
     const cached = snapshot.connectors[key];
     if (cached) {
       console.warn(`[loader] falling back to cached "${key}" data from ${cached.lastScrapedAt}`);
+      if (!FIXTURE_MODE) await cacheMediaBatch(key, collectMediaUrls(cached.results));
       return { status: 'cached', results: cached.results };
     }
     return { status: 'empty' };
@@ -100,6 +120,32 @@ async function loadOnce(): Promise<Project[]> {
         if (c) p.iconColor = c;
       }
     }
+  }
+
+  // Surface any /tmp/_cache fallback recoveries — they mean a live fetch
+  // failed and we patched the build from a previously-stashed copy.
+  const fbEvents = getFallbackEvents();
+  if (fbEvents.length) {
+    console.warn(
+      `[media-cache] ${fbEvents.length} URL(s) recovered from /tmp/_cache fallback:`,
+    );
+    for (const e of fbEvents) {
+      console.warn(`  - [${e.connectorKey}] ${e.url}`);
+    }
+  }
+
+  // Swap original upstream URLs for local served paths when the media-cache
+  // has a mapping. Connectors emit ORIGINAL URLs (so the raw scrape stays
+  // diagnosable); the dashboard publishes the local copy.
+  const rewrite = makeUrlRewriter(config.deployment.base);
+  for (const p of built) {
+    if (p.banner) p.banner = rewrite(p.banner);
+    if (p.icon) p.icon = rewrite(p.icon);
+    if (p.screenshots) p.screenshots = p.screenshots.map((u) => rewrite(u) ?? u);
+    if (p.videos) p.videos = p.videos.map((u) => rewrite(u) ?? u);
+  }
+  for (const pf of lastProfiles) {
+    if (pf.avatar) pf.avatar = rewrite(pf.avatar);
   }
 
   // Which slugs have a matching MDX detail page?

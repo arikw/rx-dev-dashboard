@@ -76,6 +76,10 @@ See **[docs/skills/add-manual-entry.md](docs/skills/add-manual-entry.md)** for t
 
 The file lives under [`docs/skills/`](docs/skills/) — a tool-agnostic home for short, action-oriented walkthroughs an AI assistant (Claude, Cursor, Cline, GitHub Copilot Chat, …) or a human contributor can follow. Each skill has YAML frontmatter for machine readability and a markdown body for the actual steps.
 
+## Caching external media
+
+The build downloads connector-referenced images and MP4 videos into a local cache under `public/_cache/<connector>/` and rewrites Project / ProfileFact image URLs at build time to the local copies. The raw scrape under `generated/.cache/<connector>/data.json` keeps the original upstream URLs so the snapshot stays diagnosable. See **[docs/skills/cache-media.md](docs/skills/cache-media.md)** for the cache layout, the url-map shape, and patterns for extending the cache (e.g. downloading YouTube trailers via `yt-dlp` and pointing the map at the local MP4).
+
 ## Advanced: keep some values out of git
 
 If you want some config values to live outside the committed file (e.g. handles you'd rather not put in a public repo, or a different deployment URL when testing locally), create `projects.config.local.ts` next to `projects.config.ts`:

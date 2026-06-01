@@ -3,10 +3,9 @@ name: Deploy
 on:
   push:
     branches: [master]
-    # Snapshot commits (`generated/**`) are produced by this workflow itself.
-    # Ignoring that path here keeps the commit-back step from re-triggering
-    # the workflow.
-    paths-ignore: ['generated/**']
+    # Snapshot + media-cache commits are produced by this workflow itself.
+    # Ignoring these paths keeps the commit-back step from re-triggering it.
+    paths-ignore: ['generated/**', 'public/_cache/**']
   schedule:
     # Daily at 08:00 UTC — refreshes source-fetched stats so the dashboard
     # stays current without a manual push.
@@ -43,21 +42,27 @@ jobs:
           # use. See README "Optional: higher GitHub API rate limit".
           GITHUB_TOKEN: ${{ secrets.GH_API_TOKEN || secrets.GITHUB_TOKEN }}
 
-      # Durable backup: commit the refreshed snapshot back to the repo on
-      # scheduled/manual runs so it survives cache eviction and is visible in
-      # the repo browser. Push-triggered builds skip this — pushes are usually
-      # code changes; we don't want to pile a data commit on top.
-      - name: Commit snapshot back (scheduled/manual runs only)
+      # Durable backup: commit the refreshed snapshot AND the downloaded media
+      # cache back to the repo on scheduled/manual runs.
+      #   - generated/ — connector snapshots, per-connector data, url-maps.
+      #   - public/_cache/ — image / video bytes referenced by url-map.json.
+      # Both are gitignored locally so cloners' personal handles stay out of
+      # forks until they configure their own; CI force-adds them so the cron
+      # rebuild is fast (no upstream re-fetch) and Pages has the bytes to
+      # serve. Push-triggered builds skip this — pushes are usually code
+      # changes; we don't want to pile data commits on top.
+      - name: Commit snapshot + media cache back (scheduled/manual runs only)
         if: github.event_name != 'push'
         run: |
           set -e
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f generated/
-          if git diff --quiet --cached HEAD -- generated/; then
-            echo 'Generated data unchanged — nothing to commit.'
+          test -d public/_cache && git add -f public/_cache/ || true
+          if git diff --quiet --cached HEAD -- generated/ public/_cache/; then
+            echo 'Generated data + media cache unchanged — nothing to commit.'
           else
-            git commit -m 'chore: refresh connector snapshot + npm download cache [skip ci]'
+            git commit -m 'chore: refresh connector snapshot + media cache [skip ci]'
             git push
           fi
 

@@ -9,7 +9,7 @@ import { readJsonCache, writeJsonCache } from '../../lib/json-cache';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const run = promisify(execFile);
 
-const CACHE_PATH = 'generated/appbrain.json';
+const CACHE_PATH = 'generated/.cache/appbrain/data.json';
 const UA = 'Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0';
 
 type AppbrainApp = {

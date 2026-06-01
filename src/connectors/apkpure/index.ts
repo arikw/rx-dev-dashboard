@@ -9,7 +9,7 @@ import { readJsonCache, writeJsonCache } from '../../lib/json-cache';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const run = promisify(execFile);
 
-const CACHE_PATH = 'generated/apkpure.json';
+const CACHE_PATH = 'generated/.cache/apkpure/data.json';
 
 type ApkpureApp = {
   packageName: string;

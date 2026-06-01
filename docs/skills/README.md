@@ -30,6 +30,11 @@ symlinked or referenced from `.claude/skills/`.
 - **[add-manual-entry.md](add-manual-entry.md)** — add a `ManualProject` (a
   project no connector covers) or a `ManualOrigin` (an authoritative
   override of a scraped number) to the dashboard config.
+- **[cache-media.md](cache-media.md)** — pre-download external images /
+  videos a connector references into the local media cache and update
+  the url-map so the builder serves the local copy. Covers one-off
+  caching, helper scripts (e.g. `yt-dlp` for YouTube trailers),
+  refreshing, and the cache layout.
 
 ## Adding a new skill
 

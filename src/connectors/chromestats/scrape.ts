@@ -24,6 +24,11 @@ export type ChromeStatsApp = {
   supportedLanguages?: string[];
   smallBanner?: string;
   marqueeBanner?: string;
+  /** Square 128×128 extension icon. chrome-stats stores it as `logo:"…"` on
+   *  the per-extension record — present even on `isDeleted` listings (the
+   *  CWS image CDN keeps the icon alive after the listing is removed).
+   *  Distinct from smallBanner/marqueeBanner, which are the promo tiles. */
+  logo?: string;
   /** Approximate install size in bytes. */
   size?: number;
   helpUrl?: string;
@@ -226,6 +231,7 @@ export async function scrapeOne(extId: string): Promise<ChromeStatsApp | null> {
     supportedLanguages: pickStringArray(record, 'supportedLanguages'),
     smallBanner: pickString(record, 'smallBanner'),
     marqueeBanner: pickString(record, 'marqueeBanner'),
+    logo: pickString(record, 'logo'),
     size: pickNumber(record, 'size'),
     helpUrl: pickString(record, 'helpUrl'),
     creationDate: pickString(record, 'creationDate'),

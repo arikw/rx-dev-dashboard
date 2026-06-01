@@ -2,6 +2,12 @@ node_modules/
 dist/
 .astro/
 
+# Media cache — cached upstream image/video bytes (served by Astro).
+# The url-map.json for each connector lives under generated/.cache/ and IS
+# committed by CI cron alongside snapshot.json; the bytes here are
+# re-downloadable on demand and shouldn't bloat the repo.
+public/_cache/
+
 # Generated build artefacts (connector snapshots, etc.)
 # Gitignored locally so personal data stays out of upstream forks.
 # CI force-adds these on cron runs (see deploy.yml) — once tracked, gitignore

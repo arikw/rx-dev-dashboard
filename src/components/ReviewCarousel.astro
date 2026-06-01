@@ -67,10 +67,16 @@ function formatDate(ts?: string): string | null {
                 rel="noopener"
                 title={`Open ${r.projectTitle}`}
               >
-                {r.projectIcon ? (
+                {r.projectIcon || r.projectBanner ? (
+                  /* Deleted Chrome extensions (e.g. removed from CWS) have no
+                     icon in our data — chrome.ts skips them and chromestats
+                     only emits a banner. Fall back to the banner cropped to
+                     the 28×28 slot via the .review-slide-source-icon's
+                     object-fit:cover, so reviews on those projects still
+                     show a visual mark instead of a placeholder square. */
                   <img
                     class="review-slide-source-icon"
-                    src={r.projectIcon}
+                    src={r.projectIcon ?? r.projectBanner}
                     alt=""
                     loading="lazy"
                     decoding="async"

@@ -12,7 +12,7 @@ export const urlExtractors: UrlIdExtractor[] = [
   },
 ];
 
-const CACHE_PATH = 'generated/stackoverflow.json';
+const CACHE_PATH = 'generated/.cache/stackoverflow/data.json';
 const REFRESH_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // What we keep from the SE API response. PII is deliberately *not* cached:
