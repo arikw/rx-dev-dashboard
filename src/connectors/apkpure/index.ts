@@ -86,13 +86,29 @@ type LdApp = {
   screenshot?: Array<{ url?: string } | string> | { url?: string } | string;
 };
 
+/** APKPure's ld+json `screenshot[]` URLs ship with `?h=200` baked in — that
+ *  serves the 120×200 thumbnail variant. The same record at the same path
+ *  with no height param returns the full-resolution 480×800 image. Strip
+ *  any `h=NNN` parameter (preserving the rest of the query string) so the
+ *  media cache fetches the natural-size image. */
+function stripHeightParam(url: string): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.delete('h');
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 function extractScreenshots(ld: LdApp | null): string[] {
   const ss = ld?.screenshot;
   if (!ss) return [];
   const list = Array.isArray(ss) ? ss : [ss];
   return list
     .map((s) => (typeof s === 'string' ? s : s?.url))
-    .filter((u): u is string => !!u);
+    .filter((u): u is string => !!u)
+    .map(stripHeightParam);
 }
 
 /** Pull YouTube embed URLs from the listing's trailer placeholder. APKPure
@@ -179,6 +195,16 @@ export const fetchApkpureProjects: Connector = async (config, options) => {
   const cache = readJsonCache<ApkpureCache>(CACHE_PATH, emptyCache());
   if (cache.version !== 1 || !cache.apps) Object.assign(cache, emptyCache());
   cache._generated = NOTE;
+
+  // One-time migration: earlier scrapes stored the ld+json `?h=200`
+  // thumbnail URLs verbatim. Strip the height param from every cached
+  // entry so the next build's cacheMedia refetches full-res via new URLs.
+  // Idempotent once cleaned — already-stripped URLs survive untouched.
+  for (const app of Object.values(cache.apps)) {
+    if (app.screenshots && app.screenshots.length > 0) {
+      app.screenshots = app.screenshots.map(stripHeightParam);
+    }
+  }
 
   for (const pkg of packages) {
     if (cache.apps[pkg]) continue; // frozen — removed-app stats never change
