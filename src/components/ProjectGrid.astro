@@ -219,6 +219,7 @@ const overflowTags = sortedTags.slice(topN);
           return;
         }
       }
+      writeHash();
       applyFilter();
     }
 
@@ -228,6 +229,7 @@ const overflowTags = sortedTags.slice(topN);
       sortChips.forEach((c) => {
         c.setAttribute('aria-pressed', String(c.dataset.filterSort === sort));
       });
+      writeHash();
       applyFilter();
     }
 
@@ -237,6 +239,7 @@ const overflowTags = sortedTags.slice(topN);
       tagChips.forEach((c) => {
         c.setAttribute('aria-pressed', String((c.dataset.filterTag ?? '') === tag));
       });
+      writeHash();
       applyFilter();
     }
 
@@ -261,15 +264,76 @@ const overflowTags = sortedTags.slice(topN);
           ? 'Fewer tags'
           : `+ ${overflowCount} more`;
         refreshTagCounts();
+        writeHash();
       });
     }
 
     moreBtn.addEventListener('click', () => {
       shown = cards.length;
+      writeHash();
       applyFilter();
     });
 
+    /** Read filter state from the URL hash (`#sort=year&source=github&…`).
+     *  Returns a partial state map; the caller validates each value
+     *  against the actual chips before applying. */
+    function readHash(): Record<string, string> {
+      const raw = window.location.hash.replace(/^#/, '');
+      return Object.fromEntries(new URLSearchParams(raw));
+    }
+
+    /** Write the current filter state to the URL hash via replaceState
+     *  (no browser-history entry per click). Default values are omitted
+     *  so the canonical / unfiltered view stays at a clean URL. */
+    function writeHash() {
+      const params = new URLSearchParams();
+      if (activeSource) params.set('source', activeSource);
+      if (activeSort !== 'featured') params.set('sort', activeSort);
+      if (activeTag) params.set('tag', activeTag);
+      if (shown >= cards.length && cards.length > pageSize) params.set('show-all', '1');
+      if (overflowExpanded) params.set('tags-expanded', '1');
+      const s = params.toString();
+      const url = `${location.pathname}${location.search}${s ? '#' + s : ''}`;
+      history.replaceState(null, '', url);
+    }
+
+    // Apply initial state from the hash before the first render so the
+    // page lands in the requested state without a visible filter flicker.
+    const initial = readHash();
+    if (initial.source && sourceChips.some((c) => c.dataset.filterSource === initial.source)) {
+      activeSource = initial.source;
+      sourceChips.forEach((c) => {
+        c.setAttribute('aria-pressed', String((c.dataset.filterSource ?? '') === activeSource));
+      });
+    }
+    if (initial.sort && (['featured', 'popularity', 'year'] as Sort[]).includes(initial.sort as Sort)) {
+      activeSort = initial.sort as Sort;
+      sortChips.forEach((c) => {
+        c.setAttribute('aria-pressed', String(c.dataset.filterSort === activeSort));
+      });
+    }
+    if (initial['tags-expanded'] === '1' && tagToggle) {
+      overflowExpanded = true;
+      const overflowCount = parseInt(tagToggle.dataset.overflowCount ?? '0', 10);
+      tagToggle.setAttribute('aria-expanded', 'true');
+      tagToggle.textContent = 'Fewer tags';
+      void overflowCount;
+    }
     refreshTagCounts();
+    // Tag validation runs after refreshTagCounts because chip visibility
+    // depends on the active source — a tag that doesn't appear under the
+    // current source is silently dropped.
+    if (initial.tag) {
+      const chip = tagChips.find((c) => c.dataset.filterTag === initial.tag);
+      if (chip && !chip.hasAttribute('hidden')) {
+        activeTag = initial.tag;
+        tagChips.forEach((c) => {
+          c.setAttribute('aria-pressed', String((c.dataset.filterTag ?? '') === activeTag));
+        });
+      }
+    }
+    if (initial['show-all'] === '1') shown = cards.length;
+
     applyFilter();
   });
 </script>
