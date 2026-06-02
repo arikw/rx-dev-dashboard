@@ -17,6 +17,14 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 // memoised, so this just hits the cached result on subsequent pages.
 await loadProjects();
 const faviconLinks = await resolveFavicon(getProfiles());
+
+const base = import.meta.env.BASE_URL.endsWith('/')
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const themeColor = config.meta.themeColor ?? '#1f1f23';
+const shortName = config.meta.shortName ?? config.meta.siteTitle;
+// Service worker is opt-out via config and skipped in dev (HMR conflicts).
+const swEnabled = config.meta.serviceWorker !== false && import.meta.env.PROD;
 ---
 
 <meta charset="utf-8" />
@@ -42,6 +50,24 @@ const faviconLinks = await resolveFavicon(getProfiles());
 {faviconLinks.map((f) => (
   <link rel={f.rel} type={f.type} sizes={f.sizes} href={f.href} />
 ))}
+
+<!-- PWA manifest. The endpoint at /<base>/manifest.webmanifest is built
+     from projects.config.ts (name, short_name, icons, theme/bg colour). -->
+<link rel="manifest" href={`${base}manifest.webmanifest`} />
+<meta name="theme-color" content={themeColor} />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content={shortName} />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+{swEnabled && (
+  <script is:inline define:vars={{ swPath: `${base}sw.js`, scope: base }}>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register(swPath, { scope }).catch(() => {});
+      });
+    }
+  </script>
+)}
 
 <title>{title}</title>
 <meta name="description" content={description} />

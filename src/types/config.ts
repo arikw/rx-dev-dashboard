@@ -210,6 +210,24 @@ export type ProjectsConfig = {
      *   - an absolute `http(s)://…` URL or a `/`-prefixed path under `public/`:
      *     use it verbatim. */
     favicon?: false | string;
+    /** PWA manifest theme_color — browser-chrome / status-bar tint when the
+     *  site is installed. CSS colour string. Defaults to `'#1f1f23'`. Also
+     *  surfaced as the `<meta name="theme-color">` tag. */
+    themeColor?: string;
+    /** PWA manifest background_color — splash-screen background shown for
+     *  the first paint after install. CSS colour string. Defaults to
+     *  `'#ffffff'`. */
+    backgroundColor?: string;
+    /** PWA manifest short_name — label under the home-screen icon when
+     *  installed. Falls back to `siteTitle`. Keep ≤ ~12 chars for the
+     *  home-screen slot. */
+    shortName?: string;
+    /** Register a service worker for installable-PWA support. Default
+     *  `true`. Set to `false` to skip emitting `sw.js` + the registration
+     *  script — the manifest alone still gives iOS Safari "Add to Home
+     *  Screen" but Android Chrome will fall back to a plain bookmark
+     *  shortcut (no standalone display) without an SW. */
+    serviceWorker?: boolean;
   };
   user: {
     name: string;

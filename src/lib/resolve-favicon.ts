@@ -44,12 +44,22 @@ const STATIC_SVG: FaviconLink = {
 // sizes for the tab icon + shortcut / home-screen slots.
 const FAVICON_SIZES = [32, 64, 128] as const;
 const APPLE_TOUCH_SIZE = 180;
+// PWA manifest sizes — Chrome's installable criteria require at least one
+// 192 and one 512 icon entry.
+const MANIFEST_SIZES = [192, 512] as const;
 
 export type FaviconLink = {
   rel: 'icon' | 'apple-touch-icon';
   type?: string;
   sizes?: string;
   href: string;
+};
+
+export type ManifestIcon = {
+  src: string;
+  sizes: string;
+  type: string;
+  purpose?: 'any' | 'maskable' | 'monochrome';
 };
 
 function typeFromUrl(url: string): string | undefined {
@@ -76,36 +86,50 @@ function urlToDiskPath(url: string): string | null {
   return resolve(process.cwd(), 'public', path.slice(1));
 }
 
+/** Resolve a source URL to its on-disk source buffer + hash. Returns null
+ *  when the URL isn't a locally cached path (remote / static / missing). */
+function loadSource(sourceUrl: string): { buf: Buffer; hash: string; mtime: number } | null {
+  const disk = urlToDiskPath(sourceUrl);
+  if (!disk || !existsSync(disk)) return null;
+  const buf = readFileSync(disk);
+  const hash = createHash('sha256').update(buf).digest('hex').slice(0, 16);
+  return { buf, hash, mtime: statSync(disk).mtimeMs };
+}
+
+/** Resize the source into a PNG of the given pixel size. Idempotent — skips
+ *  re-encoding when the output exists and is not older than the source. */
+async function ensureResized(
+  srcBuf: Buffer,
+  hash: string,
+  srcMtime: number,
+  size: number,
+): Promise<string> {
+  const outDir = resolve(process.cwd(), 'public/_cache/favicon');
+  mkdirSync(outDir, { recursive: true });
+  const filename = `${hash}-${size}.png`;
+  const outPath = resolve(outDir, filename);
+  if (!existsSync(outPath) || statSync(outPath).mtimeMs < srcMtime) {
+    const out = await sharp(srcBuf)
+      .resize(size, size, { fit: 'cover' })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+    writeFileSync(outPath, out);
+  }
+  return `${base}_cache/favicon/${filename}`;
+}
+
 /** Pre-resize a single source PNG/JPEG into the standard favicon size set.
  *  Returns the link list (resized PNGs + apple-touch). Falls back to a
  *  single verbatim link when the source can't be resized (remote URL,
  *  unreachable, etc.). */
 async function buildResizedLinks(sourceUrl: string): Promise<FaviconLink[]> {
-  const disk = urlToDiskPath(sourceUrl);
-  if (!disk || !existsSync(disk)) {
+  const src = loadSource(sourceUrl);
+  if (!src) {
     return [{ rel: 'icon', type: typeFromUrl(sourceUrl), href: sourceUrl }];
   }
-  const srcBuf = readFileSync(disk);
-  // Hash the source bytes so the output name changes when the avatar
-  // changes; lets the browser cache them long-term.
-  const hash = createHash('sha256').update(srcBuf).digest('hex').slice(0, 16);
-  const outDir = resolve(process.cwd(), 'public/_cache/favicon');
-  mkdirSync(outDir, { recursive: true });
-
-  const srcMtime = statSync(disk).mtimeMs;
   const links: FaviconLink[] = [];
-
   for (const size of [...FAVICON_SIZES, APPLE_TOUCH_SIZE]) {
-    const filename = `${hash}-${size}.png`;
-    const outPath = resolve(outDir, filename);
-    if (!existsSync(outPath) || statSync(outPath).mtimeMs < srcMtime) {
-      const buf = await sharp(srcBuf)
-        .resize(size, size, { fit: 'cover' })
-        .png({ compressionLevel: 9 })
-        .toBuffer();
-      writeFileSync(outPath, buf);
-    }
-    const href = `${base}_cache/favicon/${filename}`;
+    const href = await ensureResized(src.buf, src.hash, src.mtime, size);
     if (size === APPLE_TOUCH_SIZE) {
       links.push({ rel: 'apple-touch-icon', sizes: `${size}x${size}`, href });
     } else {
@@ -150,4 +174,53 @@ export async function resolveFavicon(profiles: ProfileFact[]): Promise<FaviconLi
 
   // Raster source → pre-resize to standard sizes + apple-touch.
   return buildResizedLinks(source);
+}
+
+/** Resolve the source the favicon pipeline would use, without resizing.
+ *  Used by callers that need to derive other artefacts (PWA manifest
+ *  icons, OG images, …) from the same source. */
+function resolveSource(profiles: ProfileFact[]): string | null {
+  const pref = config.meta.favicon;
+  if (pref === false) return null;
+  if (typeof pref === 'string' && pref.length > 0) {
+    if (/^https?:\/\//.test(pref) || pref.startsWith('/')) return pref;
+    return profiles.find((p) => p.source === pref)?.avatar ?? null;
+  }
+  return profiles.find((p) => p.avatar)?.avatar ?? null;
+}
+
+/** Pick the PWA manifest icon set (192 + 512 PNGs, `purpose: "any"`).
+ *  Reuses the favicon source-resolution + sharp resize pipeline. Falls
+ *  back to the static `public/favicon.svg` as a single any-size SVG
+ *  entry when no profile avatar is reachable — installable browsers
+ *  accept SVG icons even though Chrome's strict criteria prefer raster
+ *  192/512 PNGs. */
+export async function resolveManifestIcons(profiles: ProfileFact[]): Promise<ManifestIcon[]> {
+  const source = resolveSource(profiles);
+
+  // No source at all → static SVG (vector, scales any size).
+  if (!source) {
+    return [
+      { src: STATIC_SVG.href, sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+    ];
+  }
+
+  // SVG source — emit verbatim as a single any-size entry.
+  if (source.toLowerCase().endsWith('.svg') || typeFromUrl(source) === 'image/svg+xml') {
+    return [{ src: source, sizes: 'any', type: 'image/svg+xml', purpose: 'any' }];
+  }
+
+  // Raster source: resize through sharp into the manifest size set.
+  // When the source isn't locally on disk (remote URL we can't reach,
+  // or fresh fork pre-caching), fall back to a single verbatim entry.
+  const src = loadSource(source);
+  if (!src) {
+    return [{ src: source, sizes: 'any', type: typeFromUrl(source) ?? 'image/png', purpose: 'any' }];
+  }
+  const icons: ManifestIcon[] = [];
+  for (const size of MANIFEST_SIZES) {
+    const href = await ensureResized(src.buf, src.hash, src.mtime, size);
+    icons.push({ src: href, sizes: `${size}x${size}`, type: 'image/png', purpose: 'any' });
+  }
+  return icons;
 }

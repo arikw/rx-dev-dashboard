@@ -42,6 +42,20 @@ const config: ProjectsConfig = {
     // or to an absolute URL / `/`-prefixed path under `public/`.
     // favicon: 'github',
     // favicon: '/my-avatar.png',
+
+    // PWA manifest fields. The dashboard generates an installable
+    // manifest at <base>/manifest.webmanifest from these values plus the
+    // resolved favicon (192/512 PNGs via sharp). All optional:
+    //   themeColor: browser-chrome / status-bar colour when installed.
+    //   backgroundColor: splash screen background on first paint.
+    //   shortName: label under the home-screen icon (≤12 chars works best).
+    // themeColor: '#1f1f23',
+    // backgroundColor: '#ffffff',
+    // shortName: 'Dev Projects',
+    // Service worker (default true) — required for Android Chrome to build
+    // a WebAPK and launch the installed app in standalone mode. iOS Safari
+    // honours `display: standalone` without one. Set to false to skip:
+    // serviceWorker: false,
   },
 
   user: {
