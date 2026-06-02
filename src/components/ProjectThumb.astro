@@ -80,7 +80,13 @@ const shortTitle =
 ---
 <div class="thumb" aria-hidden="true">
   {banner ? (
-    <img class="thumb-banner" src={banner} alt="" loading="lazy" />
+    p.thumbFit === 'contain' ? (
+      <div class="thumb-banner thumb-banner--contain" style={`background: ${p.thumbBg ?? 'transparent'}`}>
+        <img src={banner} alt="" loading="lazy" />
+      </div>
+    ) : (
+      <img class="thumb-banner" src={banner} alt="" loading="lazy" />
+    )
   ) : screenshot && icon ? (
     <div class="thumb-stack" style={`background: ${tint}`}>
       <img class="thumb-bg" src={screenshot} alt="" loading="lazy" />
@@ -91,7 +97,13 @@ const shortTitle =
       <img class="thumb-icon-centered" src={icon} alt="" loading="lazy" />
     </div>
   ) : screenshot ? (
-    <img class="thumb-banner" src={screenshot} alt="" loading="lazy" />
+    p.thumbFit === 'contain' ? (
+      <div class="thumb-banner thumb-banner--contain" style={`background: ${p.thumbBg ?? 'transparent'}`}>
+        <img src={screenshot} alt="" loading="lazy" />
+      </div>
+    ) : (
+      <img class="thumb-banner" src={screenshot} alt="" loading="lazy" />
+    )
   ) : brand ? (
     <div
       class="thumb-brand"

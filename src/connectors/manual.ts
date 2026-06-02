@@ -49,6 +49,8 @@ export function manualToResults(config: ProjectsConfig): ConnectorResult[] {
       banner: m.banner,
       screenshots: m.screenshots,
       videos: m.videos,
+      thumbFit: m.thumbFit,
+      thumbBg: m.thumbBg,
       reviews: m.reviews,
       stats: m.stats ?? {},
     },

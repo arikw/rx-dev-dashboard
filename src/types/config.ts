@@ -46,6 +46,16 @@ export type ManualProject = {
    *  YouTube embed URLs (`https://www.youtube.com/embed/<id>?…`) pass
    *  through to the dashboard as upstream embeds. */
   videos?: string[];
+  /** How the card's thumb image fits its frame.
+   *   - `'cover'` (default): fills the frame, crops overflow.
+   *   - `'contain'`: scales the whole image to fit, leaves margins.
+   *  Use `'contain'` for already-letterboxed art (J2ME phone screenshots,
+   *  app store hero images with built-in padding, …) so nothing gets
+   *  cropped. */
+  thumbFit?: 'cover' | 'contain';
+  /** Background colour rendered behind the thumb when `thumbFit: 'contain'`
+   *  leaves empty space around the image. Any CSS colour string. */
+  thumbBg?: string;
   /** Where this project lived. Drives the card's source-chip label.
    *  Omit (default) → chip reads "Portfolio".
    *  Set to a known connector key (`'github'` / `'chrome'` / `'npm'` /

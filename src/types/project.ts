@@ -126,6 +126,15 @@ export type Representation = {
   /** Phone/screen captures of the running product. */
   screenshots?: string[];
   videos?: string[];
+  /** How the card's thumb image should fit its frame. `'cover'` (default)
+   *  fills the frame and crops what overflows; `'contain'` scales the
+   *  whole image to fit, leaving margins filled by `thumbBg`. Useful for
+   *  J2ME phone screenshots and other already-letterboxed art that would
+   *  look weird cropped. */
+  thumbFit?: 'cover' | 'contain';
+  /** Background colour rendered behind the thumb when `thumbFit: 'contain'`
+   *  leaves empty space. Any CSS colour string. */
+  thumbBg?: string;
   reviews?: Review[];
   tags?: string[];
   kind?: ProjectKind;
@@ -200,6 +209,10 @@ export type Project = {
   /** All screenshots collected across origins/mirrors/natives. */
   screenshots?: string[];
   videos?: string[];
+  /** Thumb-image fit (`'cover'` or `'contain'`). See `Representation.thumbFit`. */
+  thumbFit?: 'cover' | 'contain';
+  /** Backplate colour for `thumbFit: 'contain'`. See `Representation.thumbBg`. */
+  thumbBg?: string;
   /** All collected reviews — for future "positive reviews" rotators etc. */
   reviews?: Review[];
   kind?: ProjectKind;

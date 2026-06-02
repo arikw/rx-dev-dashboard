@@ -410,6 +410,8 @@ function buildProject(group: ConnectorResult[]): Project {
     icon: firstField(ordered, (r) => r.icon),
     screenshots: [...new Set(allReps.flatMap((r) => r.screenshots ?? []))],
     videos: [...new Set(allReps.flatMap((r) => r.videos ?? []))],
+    thumbFit: firstField(ordered, (r) => r.thumbFit),
+    thumbBg: firstField(ordered, (r) => r.thumbBg),
     reviews: allReps.flatMap((r) => r.reviews ?? []),
     kind: firstField(ordered, (r) => r.kind) as ProjectKind | undefined,
     openSource: allReps.some((r) => r.openSource),
