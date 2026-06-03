@@ -1124,6 +1124,18 @@ a.card-source:hover {
   transform: translateY(-0.5px);
 }
 
+/* Homepage chip — the project's external website (when distinct from
+   the title link and every source-platform listing chip). Globe icon
+   marks it visually as "the project's own site", not another platform
+   listing. Label is the generic "Website" so it reads consistently
+   with the other (also-short) platform labels; the actual URL is on
+   the link's title attribute for hover verification. */
+.card-source-icon {
+  width: 11px;
+  height: 11px;
+  display: block;
+}
+
 .card-desc {
   margin: 2px 0 6px;
   font-size: 0.9rem;

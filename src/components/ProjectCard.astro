@@ -84,6 +84,71 @@ for (const s of p.sources) {
   sourceChips.push({ s, label, href });
 }
 
+/** Canonicalise a URL for equality comparison: strip protocol, www.,
+ *  fragment, trailing slashes, and lowercase. Mirrors the helper in
+ *  build-projects.ts. */
+function canonUrl(u?: string): string | null {
+  if (!u) return null;
+  const c = u
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/#.*$/, '')
+    .replace(/\/+$/, '');
+  return c || null;
+}
+
+/** Hostnames that belong to a known source-platform listing. A homepage
+ *  pointing at one of these is just another link to the same platform
+ *  the source chip already covers — even if the URL form differs (e.g.
+ *  the legacy chrome.google.com/webstore/... vs the current
+ *  chromewebstore.google.com/...). Excluded from the homepage chip. */
+const PLATFORM_HOSTS = new Set([
+  'github.com',
+  'npmjs.com',
+  'hub.docker.com',
+  'chrome.google.com',
+  'chromewebstore.google.com',
+  'addons.mozilla.org',
+  'extensions.gnome.org',
+  'play.google.com',
+  'apps.apple.com',
+  'apkpure.com',
+  'm.apkpure.com',
+  'appbrain.com',
+  'stackoverflow.com',
+]);
+function isPlatformHostname(u?: string): boolean {
+  if (!u) return false;
+  try {
+    return PLATFORM_HOSTS.has(new URL(u).hostname.replace(/^www\./, ''));
+  } catch {
+    return false;
+  }
+}
+
+// Surface the project's homepage as its own chip when it's a genuine
+// external site (not already represented by the title link, by one of
+// the source-platform chips, or by a different-URL-same-destination
+// platform listing). The chip is generically labelled "Website" so it
+// reads as a short label like the platform chips do; the actual URL is
+// exposed via the link's title attribute for hover verification.
+let homepageChip: { href: string } | null = null;
+const homepageCanon = canonUrl(p.homepage);
+if (homepageCanon && !isPlatformHostname(p.homepage)) {
+  const existing = new Set<string>();
+  const titleCanon = canonUrl(p.url);
+  if (titleCanon) existing.add(titleCanon);
+  for (const h of Object.values(p.sourceUrls ?? {})) {
+    const c = canonUrl(h);
+    if (c) existing.add(c);
+  }
+  if (!existing.has(homepageCanon)) {
+    homepageChip = { href: p.homepage! };
+  }
+}
+
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
 
 ---
@@ -114,6 +179,23 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
           <span class={`card-source card-source--${s}`}>{label}</span>
         )
       ))}
+      {homepageChip && (
+        <a
+          class="card-source card-source--homepage"
+          href={homepageChip.href}
+          target="_blank"
+          rel="noopener"
+          title={homepageChip.href}
+        >
+          <svg class="card-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="2" y1="12" x2="22" y2="12"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          Website
+          <span class="card-source-arrow" aria-hidden="true">↗</span>
+        </a>
+      )}
     </span>
   </header>
 
