@@ -185,6 +185,7 @@ const defaultLanguage = config.meta.defaultLanguage ?? '';
     let overflowExpanded = false;
 
     const popularityOf = (c: HTMLElement) => parseFloat(c.dataset.popularity ?? '0');
+    const featuredScoreOf = (c: HTMLElement) => parseFloat(c.dataset.featuredScore ?? '0');
     const yearOf = (c: HTMLElement) => parseInt(c.dataset.year ?? '0', 10);
     // Featured rank: 0-based index in config.featured for pinned projects,
     // Infinity for everything else. Drives the default "Featured" sort.
@@ -275,10 +276,18 @@ const defaultLanguage = config.meta.defaultLanguage ?? '';
       const sorted = matching.slice().sort((a, b) => {
         if (activeSort === 'year') return yearOf(b) - yearOf(a);
         if (activeSort === 'featured') {
+          // Mirror the SSR sort in index.astro: pinned items first,
+          // then exact featuredScore desc, title alpha as deterministic
+          // tiebreak.
           const ra = featuredRankOf(a);
           const rb = featuredRankOf(b);
           if (ra !== rb) return ra - rb;
-          return popularityOf(b) - popularityOf(a);
+          const sa = featuredScoreOf(a);
+          const sb = featuredScoreOf(b);
+          if (sa !== sb) return sb - sa;
+          const ta = a.querySelector('.card-title h3')?.textContent ?? '';
+          const tb = b.querySelector('.card-title h3')?.textContent ?? '';
+          return ta.localeCompare(tb);
         }
         return popularityOf(b) - popularityOf(a);
       });

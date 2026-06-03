@@ -10,6 +10,7 @@ import config from '../lib/load-config';
 import { loadProjects, getProfiles } from '../lib/load-projects';
 import { aggregateStats } from '../lib/aggregate-stats';
 import { pickCarouselReviews } from '../lib/pick-reviews';
+import { featuredScore } from '../lib/featured-score';
 
 const allProjects = await loadProjects();
 const profiles = getProfiles();
@@ -40,27 +41,27 @@ const lastUpdatedLabel = new Date(lastUpdatedIso).toLocaleDateString('en-US', {
 // Featured projects no longer get their own row — they're pinned to the
 // top of the project grid via the default "Featured" sort. Their order
 // follows the user's hand-curated `config.featured` array; everything
-// non-featured falls through to popularity sort within itself.
+// non-featured falls through to `featuredScore` within itself (weighted
+// mix of liveness + external presence + visual richness + recency +
+// log-popularity, defined in src/lib/featured-score.ts).
 const featuredOrder = new Map(config.featured.map((slug, i) => [slug, i] as const));
 const featuredRank = (p: (typeof allProjects)[number]): number =>
   featuredOrder.get(p.id) ?? Infinity;
 
-function signal(p: (typeof allProjects)[number]): number {
-  return (
-    (p.stats.stars ?? 0) +
-    (p.stats.downloads ?? 0) +
-    (p.stats.installs?.value ?? 0) +
-    (p.stats.users ?? 0)
-  );
-}
-
-// Default sort = featured-then-popularity. Mirror the client-side default
-// in ProjectGrid so the SSR HTML matches what the user sees pre-hydration.
+// Default sort = featured-then-featuredScore. Mirror the client-side
+// default in ProjectGrid so the SSR HTML matches what the user sees
+// pre-hydration. Pure score sort: pinned items first, then exact
+// score descending, then title for deterministic ties. No bucket or
+// group-key tricks — popularity is allowed to clearly dominate when
+// there's a meaningful gap.
 const sortedAll = [...allProjects].sort((a, b) => {
   const ra = featuredRank(a);
   const rb = featuredRank(b);
   if (ra !== rb) return ra - rb;
-  return signal(b) - signal(a);
+  const sa = featuredScore(a);
+  const sb = featuredScore(b);
+  if (sa !== sb) return sb - sa;
+  return a.title.localeCompare(b.title);
 });
 
 const carouselReviews = pickCarouselReviews(allProjects, 10);
