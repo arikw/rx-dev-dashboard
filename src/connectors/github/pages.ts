@@ -53,34 +53,56 @@ function decodeHtmlEntities(s: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
-/** Fetch the given URL's HTML once and extract:
- *   - favicon: <link rel="icon|shortcut icon|apple-touch-icon|mask-icon">,
- *     fallback to <pages-url>favicon.ico convention. Reachable URLs only.
- *   - title:   <title>…</title>, trimmed and entity-decoded. */
-export async function fetchPagesMeta(
-  targetUrl: string,
-): Promise<{ favicon: string | null; title: string | null }> {
-  let html: string;
+async function fetchHtml(
+  url: string,
+): Promise<{ html: string; finalUrl: string } | null> {
   try {
-    const res = await fetch(targetUrl, {
+    const res = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) rx-dev-dashboard/0.1',
         Accept: 'text/html,application/xhtml+xml',
       },
       redirect: 'follow',
     });
-    if (!res.ok) return { favicon: null, title: null };
-    html = await res.text();
+    if (!res.ok) return null;
+    // Cloudflare bot-challenge response — `cf-mitigated: challenge` is
+    // set when Cloudflare is actively challenging the request. Treat as
+    // "no usable HTML" so the challenge page's body (e.g. <title>Just a
+    // moment...</title>) doesn't leak into our caches.
+    if (res.headers.get('cf-mitigated') === 'challenge') return null;
+    return { html: await res.text(), finalUrl: res.url || url };
   } catch {
-    return { favicon: null, title: null };
+    return null;
   }
+}
 
-  // ---- title ----
-  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  const rawTitle = titleMatch?.[1]?.replace(/\s+/g, ' ').trim();
-  const title = rawTitle ? decodeHtmlEntities(rawTitle) : null;
+/** Known interstitial / placeholder <title> values that don't describe
+ *  the actual page. Cloudflare bot-challenge titles in particular would
+ *  otherwise get cached as the project's "real" title forever. */
+function isInterstitialTitle(t: string): boolean {
+  const s = t.toLowerCase().trim();
+  return (
+    s.startsWith('just a moment') ||
+    s.startsWith('attention required') ||
+    s.startsWith('please wait') ||
+    s.startsWith('checking your browser') ||
+    s.startsWith('access denied') ||
+    s === 'loading...' ||
+    s === 'loading' ||
+    s === 'untitled' ||
+    s === 'document'
+  );
+}
 
-  // ---- favicon ----
+function extractTitle(html: string): string | null {
+  const m = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const raw = m?.[1]?.replace(/\s+/g, ' ').trim();
+  if (!raw) return null;
+  if (isInterstitialTitle(raw)) return null;
+  return decodeHtmlEntities(raw);
+}
+
+async function extractFavicon(html: string, baseUrl: string): Promise<string | null> {
   // Match <link rel="<one of icon variants>" href="..."> in either attribute
   // order. Crucially: capture href content based on its OPENING quote char
   // (backreference) — so single quotes inside a double-quoted data: URI (and
@@ -95,22 +117,73 @@ export async function fetchPagesMeta(
     'is',
   );
   const href = html.match(relHref)?.[3] ?? html.match(hrefRel)?.[2];
-  let favicon: string | null = null;
   if (href) {
     try {
-      const resolved = new URL(href, targetUrl).toString();
-      if (resolved.startsWith('data:') || (await isReachable(resolved))) favicon = resolved;
+      const resolved = new URL(href, baseUrl).toString();
+      if (resolved.startsWith('data:') || (await isReachable(resolved))) return resolved;
     } catch {
       /* fallthrough */
     }
   }
-  if (!favicon) {
-    try {
-      const fallback = new URL('favicon.ico', targetUrl).toString();
-      if (await isReachable(fallback)) favicon = fallback;
-    } catch {
-      /* fallthrough */
-    }
+  try {
+    const fallback = new URL('favicon.ico', baseUrl).toString();
+    if (await isReachable(fallback)) return fallback;
+  } catch {
+    /* fallthrough */
+  }
+  return null;
+}
+
+/** Resolve a `<meta http-equiv="refresh" content="0;url=…">` redirect
+ *  if present in the HTML. Returns the absolute target URL or null. */
+function followMetaRefresh(html: string, baseUrl: string): string | null {
+  // Tolerant of single/double quotes, optional delay-then-URL spacing, and
+  // either `url=` or `URL=` casing.
+  const m = html.match(
+    /<meta[^>]+http-equiv=(["'])refresh\1[^>]+content=(["'])[^;]*;\s*url=([^"']+)\2/i,
+  );
+  if (!m) return null;
+  try {
+    return new URL(m[3], baseUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch the given URL's HTML and extract:
+ *   - favicon: <link rel="icon|shortcut icon|apple-touch-icon|mask-icon">,
+ *     fallback to <pages-url>favicon.ico convention. Reachable URLs only.
+ *   - title:   <title>…</title>, trimmed and entity-decoded.
+ *
+ *  When the initial page has no <title> but DOES have a
+ *  <meta http-equiv="refresh"> (common for SPAs that locale-redirect or
+ *  static stubs that bounce to a sub-path), follow the refresh chain up
+ *  to `maxRefreshHops` times and try again. The first non-null title /
+ *  favicon found anywhere in the chain wins. */
+export async function fetchPagesMeta(
+  targetUrl: string,
+  maxRefreshHops = 3,
+): Promise<{ favicon: string | null; title: string | null }> {
+  let currentUrl = targetUrl;
+  let title: string | null = null;
+  let favicon: string | null = null;
+  const seen = new Set<string>();
+  for (let hop = 0; hop <= maxRefreshHops; hop++) {
+    if (seen.has(currentUrl)) break;
+    seen.add(currentUrl);
+    const result = await fetchHtml(currentUrl);
+    if (!result) break;
+    // Resolve favicon / meta-refresh relative to the FINAL URL (after
+    // HTTP redirects) — that's where the HTML actually came from.
+    // Using the originally-requested URL here would resolve /en/ on the
+    // wrong host when an HTTP 301 took us cross-origin.
+    const { html, finalUrl } = result;
+    if (!title) title = extractTitle(html);
+    if (!favicon) favicon = await extractFavicon(html, finalUrl);
+    if (title && favicon) break;
+    const next = followMetaRefresh(html, finalUrl);
+    if (!next) break;
+    currentUrl = next;
   }
   return { favicon, title };
 }

@@ -99,7 +99,14 @@ export async function fetchGithubRepoProjects(input: GithubFetchInput): Promise<
     .filter((r) => r.name.toLowerCase() !== handleLower);
 
   const pagesCache = readPagesCache();
-  const toFetch = keptRepos.filter((r) => r.has_pages && !pagesCache.pages[r.name]);
+  // Re-fetch entries that previously came back with a null title: the
+  // page might have gained one since, or the title fetch might succeed
+  // now that fetchPagesMeta follows <meta http-equiv="refresh"> chains
+  // (which catch SPA/locale-redirect stubs that have no <title> at the
+  // root). Entries with a stored title stay frozen.
+  const toFetch = keptRepos.filter(
+    (r) => r.has_pages && (!pagesCache.pages[r.name] || pagesCache.pages[r.name].title === null),
+  );
   if (toFetch.length) {
     const results = await Promise.all(
       toFetch.map(async (r) => {
