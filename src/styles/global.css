@@ -706,7 +706,9 @@ hr.section-divider {
   letter-spacing: 0.02em;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  /* Generous gap so the attribution reads as a SECOND piece of
+     metadata, not as a wraparound line of the timestamp. */
+  gap: 20px;
 }
 .site-foot p {
   margin: 0;
