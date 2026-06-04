@@ -8,11 +8,6 @@
 html {
   font-family: 'Fraunces Variable', Georgia, serif;
   -webkit-text-size-adjust: 100%;
-  /* Reserve scrollbar space on both sides so the desktop layout stays
-     visually symmetric — without this, the right gutter looks wider than
-     the left whenever a vertical scrollbar is present. No-op on touch
-     devices (where the scrollbar is an overlay). */
-  scrollbar-gutter: stable both-edges;
   /* Suppress horizontal scrollbar caused by transient overflow (e.g. the
      review carousel's slide-in animation starts at translateX(48px),
      briefly pushing the slide past the viewport). Body alone isn't
@@ -115,16 +110,52 @@ button {
   top: 0;
   z-index: 50;
   background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 14px rgba(15, 17, 21, 0.05);
+  border-bottom: 1px solid transparent;
+  transition: box-shadow 0.18s, border-color 0.18s;
+}
+.site-header.is-scrolled {
+  border-bottom-color: var(--border);
+  box-shadow: 0 2px 8px rgba(15, 17, 21, 0.05);
 }
 .site-header nav {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 8px 24px 16px;
+  padding: 32px 24px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  transition: padding 0.18s;
+}
+.site-header nav::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: var(--border);
+  transition: opacity 0.18s;
+}
+.site-header.is-scrolled nav {
+  padding-top: 10px;
+  padding-bottom: 12px;
+}
+.site-header.is-scrolled nav::after {
+  opacity: 0;
+}
+@media (max-width: 600px) {
+  .site-header nav {
+    padding: 16px 16px 14px;
+  }
+  .site-header nav::after {
+    left: 16px;
+    right: 16px;
+  }
+  .site-header.is-scrolled nav {
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
 }
 
 /* Main column: a single flex `gap` owns the rhythm between every

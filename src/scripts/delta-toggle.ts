@@ -44,19 +44,13 @@ function init(): void {
     const hidden = readStoredHidden();
     applyVisibilityState(hidden);
 
-    const updateLabel = (): void => {
-      const isHidden = document.body.classList.contains('changes-hidden');
-      const action = isHidden ? 'show' : 'hide';
-      btn.dataset.tooltip = `${total} change${total === 1 ? '' : 's'} since last visit — click to ${action}`;
-    };
-    updateLabel();
+    btn.dataset.tooltip = `${total} change${total === 1 ? '' : 's'} since last visit`;
     btn.hidden = false;
 
     btn.addEventListener('click', () => {
       const next = !document.body.classList.contains('changes-hidden');
       applyVisibilityState(next);
       storeHidden(next);
-      updateLabel();
     });
   });
 }
