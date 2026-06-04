@@ -68,13 +68,19 @@ Each connector's snapshot includes a `lastScrapedAt` timestamp. If a source fail
 
 ## Checking dashboard health
 
-Hit **`/status.json`** to see whether the last build succeeded and whether any projects got dropped because a connector couldn't enrich them:
+Hit **`/status.json`** to see whether the last build succeeded and whether any projects got dropped because a connector couldn't enrich them. The `?bust=…` query string is important — GitHub Pages caches the response for 10 minutes behind a CDN, and without a unique URL you may be reading a stale copy from before your most recent fix:
 
 ```bash
-curl -s "https://yoursite.example/status.json" | jq .
+curl -s "https://yoursite.example/status.json?bust=$(date +%s)" | jq .
 ```
 
-When `ok: false`, the response includes `failedConnectors`, `hiddenProjects`, and a `hint` field describing the fix. The most common cause is a CDN block on the GitHub Actions runner IP — fixed by building once from a residential IP and committing the caches so CI inherits them:
+When everything's clean you'll see `ok: true` with empty arrays. When something needs your attention the response carries:
+
+- `failedConnectors` — connectors whose last attempt failed (typically a CDN block on the GitHub Actions runner IP)
+- `hiddenProjects` — projects dropped from the grid because a connector couldn't enrich them past the raw id
+- `hint` — a human-readable description of the fix below
+
+**Fix:** build once from your own machine (residential IPs aren't blocked by Cloudflare like Azure-hosted runners are) and commit the populated caches so CI inherits them on the next deploy:
 
 ```bash
 npm run build                                # fills generated/.cache/ + public/_cache/
@@ -84,13 +90,7 @@ git push                                     # path-ignored — won't auto-trigg
 gh workflow run deploy.yml                   # dispatch the deploy manually
 ```
 
-### Cache-busting the CDN response
-
-GitHub Pages serves static files with `Cache-Control: max-age=600`. To skip the 10-min window after a deploy, append a unique query string — the CDN keys cached responses by full URL:
-
-```bash
-curl -s "https://yoursite.example/status.json?bust=$(date +%s)" | jq .
-```
+After the deploy completes, re-check with the cache-busted curl above. `ok` should flip to `true`.
 
 ## Adding a new connector
 
