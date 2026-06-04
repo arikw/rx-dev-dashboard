@@ -111,9 +111,13 @@ button {
 }
 
 .site-header {
-  padding: 8px 0 32px;
+  padding: 8px 0 16px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg);
 }
 
 /* Main column: a single flex `gap` owns the rhythm between every

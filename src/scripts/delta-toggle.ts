@@ -4,9 +4,13 @@ function countChanges(): number {
   let n = 0;
   n += document.querySelectorAll('.stat-delta:not([hidden])').length;
   n += document.querySelectorAll('.card-new-ribbon:not([hidden])').length;
-  const summary = document.querySelector<HTMLElement>('.visit-summary');
-  if (summary && !summary.hidden) n += 1;
   return n;
+}
+
+function shouldShowToggle(): boolean {
+  if (countChanges() > 0) return true;
+  const summary = document.querySelector<HTMLElement>('.visit-summary');
+  return !!(summary && !summary.hidden);
 }
 
 function applyVisibilityState(hidden: boolean): void {
@@ -34,8 +38,8 @@ function init(): void {
   if (!btn) return;
 
   queueMicrotask(() => {
+    if (!shouldShowToggle()) return;
     const total = countChanges();
-    if (total === 0) return;
 
     const hidden = readStoredHidden();
     applyVisibilityState(hidden);
