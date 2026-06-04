@@ -52,12 +52,12 @@ function hide(): void {
 function init(): void {
   document.addEventListener('mouseover', (e) => {
     if (!(e.target instanceof Element)) return;
-    const chip = e.target.closest('.stat-delta[data-tooltip]');
+    const chip = e.target.closest('[data-tooltip]');
     if (chip && chip !== active) show(chip);
   });
   document.addEventListener('mouseout', (e) => {
     if (!(e.target instanceof Element)) return;
-    const chip = e.target.closest('.stat-delta[data-tooltip]');
+    const chip = e.target.closest('[data-tooltip]');
     if (!chip) return;
     const related = (e as MouseEvent).relatedTarget;
     if (related instanceof Element && chip.contains(related)) return;
@@ -65,7 +65,7 @@ function init(): void {
   });
   document.addEventListener('touchstart', (e) => {
     if (!(e.target instanceof Element)) return;
-    const chip = e.target.closest('.stat-delta[data-tooltip]');
+    const chip = e.target.closest('[data-tooltip]');
     if (chip) {
       show(chip);
     } else if (!e.target.closest('.stat-info-tooltip')) {

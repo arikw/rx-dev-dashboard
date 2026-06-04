@@ -145,6 +145,12 @@ button {
   justify-content: space-between;
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -158,6 +164,55 @@ button {
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
+}
+
+.delta-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: 50%;
+  color: var(--fg);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.delta-toggle[hidden] { display: none; }
+.delta-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.delta-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+.delta-toggle-eye-open  { display: inline; }
+.delta-toggle-eye-shut  { display: none; }
+body.changes-hidden .delta-toggle-eye-open { display: none; }
+body.changes-hidden .delta-toggle-eye-shut { display: inline; }
+body.changes-hidden .delta-toggle { color: var(--muted); }
+.delta-toggle-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--delta-positive);
+  border: 2px solid var(--card-bg);
+}
+body.changes-hidden .delta-toggle-dot {
+  background: var(--muted);
+}
+
+body.changes-hidden .stat-delta,
+body.changes-hidden .card-new-ribbon,
+body.changes-hidden .visit-summary {
+  display: none;
 }
 
 /* Theme toggle — round pill in the header. Renders the icon that matches
@@ -290,9 +345,13 @@ button {
   position: static;
   top: auto;
   right: auto;
-  margin-left: 6px;
-  padding: 1px 7px;
-  font-size: 0.68rem;
+  margin-left: 4px;
+  padding: 0 6px;
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+.stat-delta--inline .stat-delta-arrow {
+  display: none;
 }
 .visit-summary {
   text-align: center;
@@ -883,6 +942,7 @@ hr.section-divider {
 .profile-chip-headline {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .profile-chip-headline-value {
