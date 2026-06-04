@@ -1,6 +1,6 @@
 type Direction = 'up' | 'down' | 'none';
 type StatKey = 'star' | 'download' | 'users' | 'projects';
-type Delta = { value: number; direction: Direction };
+type Delta = { value: number; direction: Direction; label: string };
 type Scenario = {
   relativeTime: string;
   heroDeltas: Record<StatKey, Delta>;
@@ -13,14 +13,14 @@ const SCENARIOS: Record<string, Scenario> = {
   growth: {
     relativeTime: 'since 5 days ago',
     heroDeltas: {
-      star:     { value: 12,   direction: 'up' },
-      download: { value: 1240, direction: 'up' },
-      users:    { value: 8,    direction: 'up' },
-      projects: { value: 2,    direction: 'up' },
+      star:     { value: 12,   direction: 'up', label: 'stars & likes' },
+      download: { value: 1240, direction: 'up', label: 'downloads' },
+      users:    { value: 8,    direction: 'up', label: 'active users' },
+      projects: { value: 2,    direction: 'up', label: 'projects' },
     },
     profileDeltas: {
-      github:        { value: 4,   direction: 'up' },
-      stackoverflow: { value: 320, direction: 'up' },
+      github:        { value: 4,   direction: 'up', label: 'public repos' },
+      stackoverflow: { value: 320, direction: 'up', label: 'reputation' },
     },
     newProjectCount: 2,
     removedProjectCount: 0,
@@ -28,14 +28,14 @@ const SCENARIOS: Record<string, Scenario> = {
   mixed: {
     relativeTime: 'since 12 days ago',
     heroDeltas: {
-      star:     { value: 7,   direction: 'up' },
-      download: { value: 230, direction: 'up' },
-      users:    { value: 0,   direction: 'none' },
-      projects: { value: 2,   direction: 'down' },
+      star:     { value: 7,   direction: 'up',   label: 'stars & likes' },
+      download: { value: 230, direction: 'up',   label: 'downloads' },
+      users:    { value: 0,   direction: 'none', label: 'active users' },
+      projects: { value: 2,   direction: 'down', label: 'projects' },
     },
     profileDeltas: {
-      github:        { value: 1,  direction: 'up' },
-      stackoverflow: { value: 50, direction: 'down' },
+      github:        { value: 1,  direction: 'up',   label: 'public repos' },
+      stackoverflow: { value: 50, direction: 'down', label: 'reputation' },
     },
     newProjectCount: 1,
     removedProjectCount: 3,
@@ -43,10 +43,10 @@ const SCENARIOS: Record<string, Scenario> = {
   quiet: {
     relativeTime: '',
     heroDeltas: {
-      star:     { value: 0, direction: 'none' },
-      download: { value: 0, direction: 'none' },
-      users:    { value: 0, direction: 'none' },
-      projects: { value: 0, direction: 'none' },
+      star:     { value: 0, direction: 'none', label: 'stars & likes' },
+      download: { value: 0, direction: 'none', label: 'downloads' },
+      users:    { value: 0, direction: 'none', label: 'active users' },
+      projects: { value: 0, direction: 'none', label: 'projects' },
     },
     profileDeltas: {},
     newProjectCount: 0,
@@ -68,7 +68,9 @@ function injectDelta(slot: HTMLElement, delta: Delta, relativeTime: string): voi
   const sign = delta.direction === 'up' ? '+' : '−';
   slot.classList.toggle('is-negative', delta.direction === 'down');
   slot.innerHTML = `<span class="stat-delta-arrow" aria-hidden="true">${arrow}</span>${sign}${formatNumber(delta.value)}`;
-  if (relativeTime) slot.title = relativeTime;
+  const tooltipParts = [`${sign}${formatNumber(delta.value)} ${delta.label}`];
+  if (relativeTime) tooltipParts.push(relativeTime);
+  slot.dataset.tooltip = tooltipParts.join(' ');
   slot.removeAttribute('hidden');
 }
 
@@ -81,8 +83,7 @@ function populateVisitSummary(scenario: Scenario): void {
     parts.push(`<span class="visit-summary-new">${scenario.newProjectCount} ${label}</span>`);
   }
   if (scenario.removedProjectCount > 0) {
-    const label = scenario.removedProjectCount === 1 ? 'removed' : 'removed';
-    parts.push(`<span class="visit-summary-removed">${scenario.removedProjectCount} ${label}</span>`);
+    parts.push(`<span class="visit-summary-removed">${scenario.removedProjectCount} removed</span>`);
   }
   if (!parts.length) return;
   const time = scenario.relativeTime ? ` ${scenario.relativeTime}` : '';
