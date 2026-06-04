@@ -8,6 +8,7 @@ import type { ConnectorManifest } from '../connectors/_define';
 import { readSnapshot, writeSnapshot, type ConnectorKey, type SnapshotFile } from './snapshot-store';
 import { resolveIconColors } from './icon-color';
 import { cacheMediaBatch, getFallbackEvents, makeUrlRewriter } from './media-cache';
+import { isRenderable } from './project-renderable';
 
 const FIXTURE_MODE = process.env.CONNECTORS_FIXTURE === '1';
 // config.media.cache opts out of the local image/mp4 cache (default ON).
@@ -22,6 +23,11 @@ type ConnectorRunResult =
 let memo: Promise<Project[]> | null = null;
 let lastSnapshot: SnapshotFile | null = null;
 let lastProfiles: ProfileFact[] = [];
+/** Projects dropped by `isRenderable` (typically a removed Chrome extension /
+ *  Play app whose enrichment connector — chromestats / apkpure / appbrain —
+ *  couldn't be reached on the build runner). Surfaced via /status.json so the
+ *  developer knows they should run a local build to populate the cache. */
+let lastHidden: Array<{ id: string; reason: string }> = [];
 
 /** Collect every image / video URL a connector's results + profile reference. */
 function collectMediaUrls(results: ConnectorResult[], profile?: ProfileFact): string[] {
@@ -203,7 +209,25 @@ async function loadOnce(): Promise<Project[]> {
     ...config.manual.filter((m) => m.featured).map((m) => m.slug),
   ]);
 
-  return built.map((p) => ({
+  // Drop unrenderable stubs (e.g. removed Chrome extensions where chromestats
+  // wasn't reachable on the build runner, so the only data we have is the
+  // raw extension id). Track them for the /status endpoint so the dev sees
+  // a clear signal that a local build is needed to populate the caches.
+  const visible: Project[] = [];
+  const hidden: Array<{ id: string; reason: string }> = [];
+  for (const p of built) {
+    if (isRenderable(p)) {
+      visible.push(p);
+    } else {
+      hidden.push({
+        id: p.id,
+        reason: 'no friendly title — connector enrichment data missing (likely Cloudflare-gated source unreachable on the build runner)',
+      });
+    }
+  }
+  lastHidden = hidden;
+
+  return visible.map((p) => ({
     ...p,
     featured: featuredSlugs.has(p.id),
     hasDetail: detailSlugs.has(p.id),
@@ -223,4 +247,10 @@ export function getSnapshot(): SnapshotFile | null {
  *  current build. Available after loadProjects() resolves. */
 export function getProfiles(): ProfileFact[] {
   return lastProfiles;
+}
+
+/** Projects dropped by `isRenderable` during the current build. Each entry
+ *  has the project id and a short reason. Surfaced via /status.json. */
+export function getHidden(): Array<{ id: string; reason: string }> {
+  return lastHidden;
 }
