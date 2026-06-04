@@ -121,14 +121,14 @@ export const fetchChromestatsProjects = async (
     return {
       projects,
       ok: false,
-      error: `chromestats: no extension ids returned data (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
+      error: `no extension ids returned data (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
     };
   }
   if (missing > 0) {
     return {
       projects,
       ok: 'partial',
-      error: `chromestats: ${missing}/${extensionIds.length} extension ids missing (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
+      error: `${missing}/${extensionIds.length} extension ids missing (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
     };
   }
   return { projects };

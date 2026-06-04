@@ -68,31 +68,43 @@ Each connector's snapshot includes a `lastScrapedAt` timestamp. If a source fail
 
 ## Checking dashboard health
 
-Hit **`/status.json`** to see whether the last build succeeded and whether any projects got dropped because a connector couldn't enrich them. The endpoint sits under your configured `deployment.base`, so the full URL is `<deployment.site><deployment.base>/status.json` — for example `https://yoursite.example/status.json` if you're serving at the root, or `https://yoursite.example/projects/status.json` if `base` is `/projects`.
-
-The `?bust=…` query string is important — GitHub Pages caches the response for 10 minutes behind a CDN, and without a unique URL you may be reading a stale copy from before your most recent fix:
-
 ```bash
-curl -s "https://yoursite.example/status.json?bust=$(date +%s)" | jq .
+npm run status
 ```
 
-When everything's clean you'll see `ok: true` with empty arrays. When something needs your attention the response carries:
+Auto-detects your dashboard URL from `projects.config.ts` (and `projects.config.local.ts` when present), hits `/status.json` with a cache-busting query string, and prints a human-readable summary. Exit code is 0 when everything's healthy, 1 when something needs attention — usable in CI / pre-deploy checks.
 
-- `failedConnectors` — connectors whose last attempt failed (typically a CDN block on the GitHub Actions runner IP)
-- `hiddenProjects` — projects dropped from the grid because a connector couldn't enrich them past the raw id
-- `hint` — a human-readable description of the fix below
+Example output when everything's clean:
 
-**Fix:** build once from your own machine (residential IPs aren't blocked by Cloudflare like Azure-hosted runners are) and commit the populated caches so CI inherits them on the next deploy:
-
-```bash
-npm run build                                # fills generated/.cache/ + public/_cache/
-git add -f generated/.cache/ public/_cache/  # both are gitignored locally
-git commit -m "Seed connector caches"
-git push                                     # path-ignored — won't auto-trigger a deploy
-gh workflow run deploy.yml                   # dispatch the deploy manually
+```
+✓ Status: HEALTHY https://yoursite.example/status.json
+  All 10 connectors fully covered, no hidden projects.
 ```
 
-After the deploy completes, re-check with the cache-busted curl above. `ok` should flip to `true`.
+Example output when something needs your attention:
+
+```
+✗ Status: NEEDS ATTENTION https://yoursite.example/status.json
+
+  ↳ Partial coverage (1):
+      • chromestats: 4/6 extension ids missing (likely Cloudflare block)
+  ↳ Hidden projects (1):
+      • jdmiahadpnljimfcnfaebjggbfkjkgan
+        no friendly title — connector enrichment data missing
+
+  Fix  (typically: a Cloudflare-gated source the runner can't reach):
+    1. npm run build                                # populate caches from your residential IP
+    2. git add -f generated/.cache/ public/_cache/  # both are gitignored locally
+    3. git commit -m 'Seed caches' && git push      # push alone is path-ignored — won't auto-deploy
+    4. gh workflow run deploy.yml                   # dispatch the deploy
+    5. Re-run npm run status to verify.
+```
+
+The script reads `/status.json`, which sits under your configured `deployment.base`. Pass a URL explicitly to override auto-detection:
+
+```bash
+npm run status -- https://yoursite.example/projects
+```
 
 ## Adding a new connector
 

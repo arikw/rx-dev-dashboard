@@ -274,14 +274,14 @@ export const fetchApkpureProjects = async (
     return {
       projects,
       ok: false,
-      error: `apkpure: no packages returned data (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
+      error: `no packages returned data (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
     };
   }
   if (missing > 0) {
     return {
       projects,
       ok: 'partial',
-      error: `apkpure: ${missing}/${packages.length} packages missing (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
+      error: `${missing}/${packages.length} packages missing (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
     };
   }
   return { projects };
