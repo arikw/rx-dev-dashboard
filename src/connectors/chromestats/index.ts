@@ -115,11 +115,20 @@ export const fetchChromestatsProjects = async (
       },
     }));
 
-  if (attempted > 0 && projects.length === 0) {
+  // Coverage-based ok — see apkpure/index.ts for the rationale.
+  const missing = extensionIds.filter((id) => !cache.apps[id]).length;
+  if (projects.length === 0 && extensionIds.length > 0) {
     return {
       projects,
       ok: false,
-      error: `chromestats: ${failed}/${attempted} fresh scrapes failed (likely Cloudflare block)`,
+      error: `chromestats: no extension ids returned data (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
+    };
+  }
+  if (missing > 0) {
+    return {
+      projects,
+      ok: 'partial',
+      error: `chromestats: ${missing}/${extensionIds.length} extension ids missing (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
     };
   }
   return { projects };

@@ -100,11 +100,22 @@ async function runConnector(
     }
     return result;
   }
+  // ok === true OR ok === 'partial': both write fresh results to the
+  // snapshot. The granular state ('partial' = incomplete but usable)
+  // rides along in `lastAttempt.ok` for surface in /status.json.
   const results = out.projects ?? [];
+  const partial = out.ok === 'partial';
+  if (partial) {
+    console.warn(`[loader] connector "${key}" partial coverage: ${out.error ?? 'some configured ids returned no data'}`);
+  }
   snapshot.connectors[key] = {
     lastScrapedAt: now,
     results,
-    lastAttempt: { at: now, ok: true },
+    lastAttempt: {
+      at: now,
+      ok: partial ? 'partial' : true,
+      ...(partial && out.error ? { error: out.error } : {}),
+    },
   };
   await maybeCache(key, collectMediaUrls(results, out.profile));
   return { status: 'fresh', results, profile: out.profile };

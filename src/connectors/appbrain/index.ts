@@ -225,11 +225,20 @@ export const fetchAppbrainProjects = async (
       },
     }));
 
-  if (attempted > 0 && projects.length === 0) {
+  // Coverage-based ok — see apkpure/index.ts for the rationale.
+  const missing = packages.filter((p) => !cache.apps[p]).length;
+  if (projects.length === 0 && packages.length > 0) {
     return {
       projects,
       ok: false,
-      error: `appbrain: ${failed}/${attempted} fresh scrapes failed (likely Cloudflare block)`,
+      error: `appbrain: no packages returned data (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
+    };
+  }
+  if (missing > 0) {
+    return {
+      projects,
+      ok: 'partial',
+      error: `appbrain: ${missing}/${packages.length} packages missing (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
     };
   }
   return { projects };

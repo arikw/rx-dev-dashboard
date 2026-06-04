@@ -263,15 +263,25 @@ export const fetchApkpureProjects = async (
       },
     }));
 
-  // ok=false when we tried fresh scrapes and got nothing — almost always a
-  // Cloudflare block on this runner. Partial success (some new apps cached)
-  // still reports ok=true. The loader uses ok to decide whether to preserve
-  // the snapshot's last successful results.
-  if (attempted > 0 && projects.length === 0) {
+  // Coverage-based ok: compare returned results against configured input.
+  //  - all configured packages have data → ok:true
+  //  - none have data (typically: fresh attempts all failed, no cache) → ok:false
+  //  - some configured, some not → ok:'partial' (incomplete but usable)
+  // The loader uses ok=false to preserve the previous snapshot; ok='partial'
+  // writes the fresh results but flags incomplete coverage in /status.json.
+  const missing = packages.filter((p) => !cache.apps[p]).length;
+  if (projects.length === 0 && packages.length > 0) {
     return {
       projects,
       ok: false,
-      error: `apkpure: ${failed}/${attempted} fresh scrapes failed (likely Cloudflare block)`,
+      error: `apkpure: no packages returned data (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
+    };
+  }
+  if (missing > 0) {
+    return {
+      projects,
+      ok: 'partial',
+      error: `apkpure: ${missing}/${packages.length} packages missing (${failed}/${attempted} fresh scrapes failed — likely Cloudflare block)`,
     };
   }
   return { projects };

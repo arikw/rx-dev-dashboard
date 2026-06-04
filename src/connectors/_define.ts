@@ -11,16 +11,20 @@ export type ConnectorFetchOpts = {
 /** A connector's output. Project-emitters set `projects`, profile sources
  *  set `profile`, GitHub sets both.
  *
- *  Observability: connectors that hit an upstream they can't reach (CDN
- *  block, network error, parse exhaustion) can signal that the result is
- *  unreliable by setting `ok: false` with a human-readable `error`. The
- *  loader then preserves the snapshot's previous SUCCESSFUL `results`
- *  instead of overwriting them with the failed-run partial, and surfaces
- *  the failure in /data.json. Defaults to ok:true when omitted. */
+ *  Observability — `ok` signals coverage of the connector's configured input:
+ *  - `true` (or omitted): every configured id returned data (or no configured
+ *    input at all). All-clear.
+ *  - `'partial'`: some configured ids returned data, some didn't. The result
+ *    is incomplete but usable; the loader still writes the fresh results to
+ *    the snapshot.
+ *  - `false`: nothing usable came back this run. The loader preserves the
+ *    snapshot's previous SUCCESSFUL results instead of overwriting them.
+ *  `error` carries a human-readable reason for partial/false states. All
+ *  three are surfaced in /status.json. */
 export type ConnectorOutput = {
   projects?: ConnectorResult[];
   profile?: ProfileFact;
-  ok?: boolean;
+  ok?: boolean | 'partial';
   error?: string;
 };
 

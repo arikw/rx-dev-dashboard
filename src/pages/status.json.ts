@@ -19,7 +19,12 @@ export const GET: APIRoute = async () => {
   const snapshot = getSnapshot();
   const hidden = getHidden();
 
-  const connectors: Record<string, { ok: boolean; lastScrapedAt: string; lastAttempt: { at: string; ok: boolean; error?: string } }> = {};
+  type StatusEntry = {
+    ok: boolean | 'partial';
+    lastScrapedAt: string;
+    lastAttempt: { at: string; ok: boolean | 'partial'; error?: string };
+  };
+  const connectors: Record<string, StatusEntry> = {};
   for (const [k, v] of Object.entries(snapshot?.connectors ?? {})) {
     if (!v) continue;
     connectors[k] = {
@@ -29,8 +34,11 @@ export const GET: APIRoute = async () => {
     };
   }
 
-  const failedConnectors = Object.entries(connectors).filter(([, c]) => !c.ok).map(([k]) => k);
-  const ok = failedConnectors.length === 0 && hidden.length === 0;
+  const failedConnectors = Object.entries(connectors).filter(([, c]) => c.ok === false).map(([k]) => k);
+  const partialConnectors = Object.entries(connectors).filter(([, c]) => c.ok === 'partial').map(([k]) => k);
+  // Global ok: true only when every connector has full coverage (no failed,
+  // no partial) AND no project was dropped by the renderable filter.
+  const ok = failedConnectors.length === 0 && partialConnectors.length === 0 && hidden.length === 0;
 
   const hint = ok
     ? null
@@ -41,6 +49,7 @@ export const GET: APIRoute = async () => {
       ok,
       checkedAt: new Date().toISOString(),
       failedConnectors,
+      partialConnectors,
       hiddenProjects: hidden,
       connectors,
       hint,
