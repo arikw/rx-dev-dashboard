@@ -32,18 +32,43 @@ GitHub disables Actions on forks by default. Turn them on:
 - **Web UI:** go to your fork's **Actions** tab → click **I understand my workflows, go ahead and enable them**.
 - **CLI:** `gh api -X PUT repos/<your-user>/<your-fork>/actions/permissions -F enabled=true`
 
-### 3. Edit `projects.config.ts`
+### 3. Add `projects.config.local.ts` with your dashboard config
 
-The whole dashboard is driven from this one file:
+Create `projects.config.local.ts` next to `projects.config.ts`. The loader shallow-merges your local file over the base config at build time, so anything you don't override falls through to the defaults:
 
-- `deployment.site` — the public origin where your site lives (e.g. `https://yourname.dev`)
-- `deployment.base` — the path prefix (`'/'` for root deployments, `'/projects'` for sub-path)
-- `user.github`, `user.npm`, `user.docker` — your handles for each source (`npm` and `docker` default to `github` when left empty)
-- `sources.chrome.extensionIds` — 32-char IDs from your Chrome Web Store listing URLs
-- `featured` — slugs to pin at the top of the page
-- `manual` — projects without an online source (closed-source, retired, etc.)
+```ts
+import baseConfig from './projects.config';
 
-Any source you leave empty or disable just contributes nothing — connectors degrade gracefully.
+export default {
+  ...baseConfig,
+  deployment: {
+    ...baseConfig.deployment,
+    site: 'https://yourname.dev',   // the public origin where your site lives
+    base: '/',                      // path prefix — '/' for root, '/projects' for a sub-path
+  },
+  user: {
+    ...baseConfig.user,
+    github: 'your-github-handle',
+    // npm: 'your-npm-handle',      // optional — defaults to github
+    // docker: 'your-docker-id',    // optional — defaults to github
+  },
+  sources: {
+    ...baseConfig.sources,
+    chrome: {
+      ...baseConfig.sources.chrome,
+      extensionIds: ['<32-char-id>', /* … */],   // from chromewebstore.google.com/detail/<id>
+    },
+  },
+  featured: ['slug-to-pin-at-the-top'],
+  manual: [
+    // projects without an online source (closed-source, retired, etc.)
+  ],
+};
+```
+
+Any source you leave empty or disable just contributes nothing — connectors degrade gracefully. Override only what you need; the base config keeps cloners from fighting upstream `projects.config.ts` updates when they pull bug fixes.
+
+If you'd rather keep your handles out of git, add `projects.config.local.ts` to your fork's `.gitignore` or to `.git/info/exclude`. (Editing `projects.config.ts` directly works too, but you'll have merge conflicts on every upstream pull.)
 
 ### 4. Enable GitHub Pages
 
@@ -56,6 +81,10 @@ Push to the default branch — the workflow builds and deploys. A daily cron at 
 To trigger a one-off build without pushing: Actions tab → **Deploy** → **Run workflow**.
 
 > Prefer a standalone repo over a fork? **Use this template → Create a new repository** also works — that path skips step 2 (Actions are enabled by default on template-created repos).
+
+### 6. (Optional) Verify the deploy with `npm run status`
+
+After the deploy lands, run `npm run status` locally to confirm the dashboard built cleanly. See [Checking dashboard health](#checking-dashboard-health) below for what the output looks like and how to fix anything it flags.
 
 ## Inspecting connector data
 
@@ -129,26 +158,6 @@ Set `media: { cache: false }` to disable the cache entirely. Connectors will emi
 - or you'd rather rely on browser-side caching only.
 
 See **[docs/skills/cache-media.md](docs/skills/cache-media.md)** for the cache layout, the `url-map.json` shape, and patterns for extending the cache (e.g. transcoding YouTube trailers to local MP4 via `yt-dlp` and pointing the map at the result).
-
-## Advanced: keep some values out of git
-
-If you want some config values to live outside the committed file (e.g. handles you'd rather not put in a public repo, or a different deployment URL when testing locally), create `projects.config.local.ts` next to `projects.config.ts`:
-
-```ts
-import baseConfig from './projects.config';
-
-export default {
-  ...baseConfig,
-  user: {
-    ...baseConfig.user,
-    github: 'your-handle',
-  },
-};
-```
-
-The loader shallow-merges this file over `projects.config.ts` at build time when present, so you can override any subtree. Add `projects.config.local.ts` to your fork's `.gitignore` (or to `.git/info/exclude` for a per-clone ignore that won't conflict with upstream `.gitignore` updates) to keep it out of commits.
-
-Most cloners don't need this — editing `projects.config.ts` directly and committing is the normal path.
 
 ## Advanced: higher GitHub API rate limit
 
