@@ -59,67 +59,38 @@ To trigger a one-off build without pushing: Actions tab → **Deploy** → **Run
 
 ## Inspecting connector data
 
-Three views into what each connector returned and when:
+Two views into what each connector returned and when:
 
 - **`/data.json`** — emitted on every build at the site root (e.g. `https://yoursite.example/data.json`). Includes the merged project list plus a per-connector snapshot.
-- **`/status.json`** — health check for the dashboard. Returns `ok: true` when the last build was clean, or `ok: false` with details about which connectors couldn't reach their source and which projects got dropped as a result. See **Checking dashboard health** below for the typical workflow.
 - **`generated/snapshot.json`** — the persisted snapshot. Gitignored locally; the scheduled workflow commits it back to the repo as a durable backup (visible in the repo browser).
 
-Each connector's snapshot entry records two timestamps. `lastScrapedAt` is the most recent SUCCESSFUL fetch, and `lastAttempt.at` is the most recent attempt (success OR failure). If a fetch fails (API outage, rate limit, CDN block), `lastAttempt.ok` flips to `false` and `lastAttempt.error` carries the reason — the loader then preserves the previous successful `results` and `lastScrapedAt` so a transient block doesn't blank out the source.
+Each connector's snapshot includes a `lastScrapedAt` timestamp. If a source fails on the next run (API outage, rate limit, scrape regression), the loader falls back to that connector's most recent successful scrape — only the affected source goes stale, never the whole dashboard.
 
 ## Checking dashboard health
 
-If you ever notice a card with a raw-looking title (a 32-char Chrome extension id, a `com.example.foo` Android package) or fewer projects than expected, hit the status endpoint:
+Hit **`/status.json`** to see whether the last build succeeded and whether any projects got dropped because a connector couldn't enrich them:
 
 ```bash
 curl -s "https://yoursite.example/status.json" | jq .
 ```
 
-When everything's fine:
-
-```json
-{
-  "ok": true,
-  "failedConnectors": [],
-  "hiddenProjects": [],
-  ...
-}
-```
-
-When something needs your attention:
-
-```json
-{
-  "ok": false,
-  "failedConnectors": ["chromestats"],
-  "hiddenProjects": [
-    { "id": "jdmiahadpnljimfcnfaebjggbfkjkgan", "reason": "no friendly title — connector enrichment data missing …" }
-  ],
-  "hint": "Some essentials are missing. Build locally (`npm run build`) to populate the connector caches …"
-}
-```
-
-The most common cause: some connectors scrape Cloudflare-protected sources (`chrome-stats.com`, AppBrain, APKPure) that block requests from GitHub Actions runner IPs but accept requests from a residential / home IP. The fix is to build once from your own machine, which fills the per-connector caches under `generated/.cache/`, then commit those caches so CI uses them on subsequent runs:
+When `ok: false`, the response includes `failedConnectors`, `hiddenProjects`, and a `hint` field describing the fix. The most common cause is a CDN block on the GitHub Actions runner IP — fixed by building once from a residential IP and committing the caches so CI inherits them:
 
 ```bash
-npm run build                                     # populates generated/.cache/ + public/_cache/
-git add -f generated/.cache/ public/_cache/       # both are gitignored locally
-git commit -m "Seed connector caches from a local build"
-git push                                          # path-ignored — push won't auto-trigger a deploy
-gh workflow run deploy.yml                        # dispatch the deploy manually
+npm run build                                # fills generated/.cache/ + public/_cache/
+git add -f generated/.cache/ public/_cache/  # both are gitignored locally
+git commit -m "Seed connector caches"
+git push                                     # path-ignored — won't auto-trigger a deploy
+gh workflow run deploy.yml                   # dispatch the deploy manually
 ```
-
-After CI redeploys, `/status.json` should flip to `ok: true`.
 
 ### Cache-busting the CDN response
 
-`/status.json` and `/data.json` are static files served behind a CDN with `Cache-Control: max-age=600` (10 minutes). If you just ran a deploy and want a fresh read instead of waiting out the cache, append a unique query string:
+GitHub Pages serves static files with `Cache-Control: max-age=600`. To skip the 10-min window after a deploy, append a unique query string — the CDN keys cached responses by full URL:
 
 ```bash
 curl -s "https://yoursite.example/status.json?bust=$(date +%s)" | jq .
 ```
-
-The CDN keys cached responses by full URL, so a different query value side-steps the cached entry and pulls a fresh copy from origin. Same trick works for `/data.json`, the dashboard's HTML, anything cached on the CDN.
 
 ## Adding a new connector
 
