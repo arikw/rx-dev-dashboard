@@ -61,14 +61,12 @@ async function runConnector(
   // Two failure paths converge: the connector throws OR it explicitly
   // signals { ok: false }. In both cases we preserve the previous successful
   // `results` and `lastScrapedAt` so a transient block doesn't blank out
-  // the source — only `attemptedAt`, `ok`, and `error` get refreshed.
+  // the source — only `lastAttempt` gets refreshed.
   const recordFailure = (error: string): ConnectorRunResult => {
     snapshot.connectors[key] = {
       lastScrapedAt: cached?.lastScrapedAt ?? now,
       results: cached?.results ?? [],
-      ok: false,
-      attemptedAt: now,
-      error,
+      lastAttempt: { at: now, ok: false, error },
     };
     if (cached) return { status: 'cached', results: cached.results };
     return { status: 'empty' };
@@ -100,8 +98,7 @@ async function runConnector(
   snapshot.connectors[key] = {
     lastScrapedAt: now,
     results,
-    ok: true,
-    attemptedAt: now,
+    lastAttempt: { at: now, ok: true },
   };
   await maybeCache(key, collectMediaUrls(results, out.profile));
   return { status: 'fresh', results, profile: out.profile };
