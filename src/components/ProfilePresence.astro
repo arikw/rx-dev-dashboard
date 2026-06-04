@@ -26,7 +26,6 @@ function renderValue(v: number | string): string {
           rel="noopener"
           style={mark ? `--brand-tint: light-dark(${mark.tint}, ${mark.darkTint ?? mark.tint}); --brand-fg: light-dark(${mark.fg}, ${mark.darkFg ?? mark.fg})` : undefined}
         >
-          <span class="stat-delta" hidden></span>
           {mark && (
             <span class="profile-chip-mark" set:html={mark.svg} aria-hidden="true" />
           )}
@@ -35,6 +34,7 @@ function renderValue(v: number | string): string {
             <span class="profile-chip-headline">
               <span class="profile-chip-headline-value">{renderValue(p.headline.value)}</span>
               <span class="profile-chip-headline-label">{p.headline.label}</span>
+              <span class="stat-delta stat-delta--inline" hidden data-fact-label={p.headline.label}></span>
             </span>
             {p.details && p.details.length > 0 && (
               <span class="profile-chip-details">
@@ -42,6 +42,7 @@ function renderValue(v: number | string): string {
                   <span class="profile-chip-detail">
                     <span class="profile-chip-detail-value">{renderValue(d.value)}</span>
                     <span class="profile-chip-detail-label">{d.label}</span>
+                    <span class="stat-delta stat-delta--inline" hidden data-fact-label={d.label}></span>
                   </span>
                 ))}
               </span>

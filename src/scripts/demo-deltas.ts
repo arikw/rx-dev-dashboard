@@ -4,7 +4,7 @@ type Delta = { value: number; direction: Direction; label: string };
 type Scenario = {
   relativeTime: string;
   heroDeltas: Record<StatKey, Delta>;
-  profileDeltas: Record<string, Delta>;
+  profileDeltas: Record<string, Record<string, Delta>>;
   newProjectCount: number;
   removedProjectCount: number;
 };
@@ -19,8 +19,15 @@ const SCENARIOS: Record<string, Scenario> = {
       projects: { value: 2,    direction: 'up', label: 'projects' },
     },
     profileDeltas: {
-      github:        { value: 4,   direction: 'up', label: 'public repos' },
-      stackoverflow: { value: 320, direction: 'up', label: 'reputation' },
+      github: {
+        'public repos': { value: 4, direction: 'up', label: 'public repos' },
+        'followers':    { value: 2, direction: 'up', label: 'followers' },
+      },
+      stackoverflow: {
+        'reputation': { value: 320, direction: 'up', label: 'reputation' },
+        '🥇':          { value: 1,   direction: 'up', label: 'gold badges' },
+        '🥉':          { value: 3,   direction: 'up', label: 'bronze badges' },
+      },
     },
     newProjectCount: 2,
     removedProjectCount: 0,
@@ -34,8 +41,14 @@ const SCENARIOS: Record<string, Scenario> = {
       projects: { value: 2,   direction: 'down', label: 'projects' },
     },
     profileDeltas: {
-      github:        { value: 1,  direction: 'up',   label: 'public repos' },
-      stackoverflow: { value: 50, direction: 'down', label: 'reputation' },
+      github: {
+        'public repos': { value: 1, direction: 'up',   label: 'public repos' },
+        'followers':    { value: 1, direction: 'down', label: 'followers' },
+      },
+      stackoverflow: {
+        'reputation': { value: 50, direction: 'down', label: 'reputation' },
+        '🥈':          { value: 2,  direction: 'up',   label: 'silver badges' },
+      },
     },
     newProjectCount: 1,
     removedProjectCount: 3,
@@ -104,10 +117,13 @@ function activate(): void {
     if (slot) injectDelta(slot, delta, scenario.relativeTime);
   }
 
-  for (const [source, delta] of Object.entries(scenario.profileDeltas)) {
+  for (const [source, deltas] of Object.entries(scenario.profileDeltas)) {
     const chip = document.querySelector(`.profile-chip[data-profile-source="${source}"]`);
-    const slot = chip?.querySelector<HTMLElement>('.stat-delta');
-    if (slot) injectDelta(slot, delta, scenario.relativeTime);
+    if (!chip) continue;
+    for (const [factLabel, delta] of Object.entries(deltas)) {
+      const slot = chip.querySelector<HTMLElement>(`.stat-delta[data-fact-label="${CSS.escape(factLabel)}"]`);
+      if (slot) injectDelta(slot, delta, scenario.relativeTime);
+    }
   }
 
   if (scenario.newProjectCount > 0) {
