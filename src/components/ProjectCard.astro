@@ -107,6 +107,7 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
 ---
 <article
   class={`card card--${size}`}
+  data-id={p.id}
   data-source-groups={sourceGroups}
   data-tags={tagList}
   data-content-language={contentLanguage}

@@ -7,7 +7,7 @@ import ProjectGrid from '../components/ProjectGrid.astro';
 import SiteAbout from '../components/SiteAbout.astro';
 import AuthorBio from '../components/AuthorBio.astro';
 import config from '../lib/load-config';
-import { loadProjects, getProfiles } from '../lib/load-projects';
+import { loadProjects, getProfiles, getSnapshot } from '../lib/load-projects';
 import { aggregateStats } from '../lib/aggregate-stats';
 import { pickCarouselReviews } from '../lib/pick-reviews';
 import { featuredScore } from '../lib/featured-score';
@@ -28,9 +28,20 @@ function resolveProfileImage(): string | null {
   return profiles.find((p) => p.avatar)?.avatar ?? null;
 }
 const profileImage = resolveProfileImage();
-// Build timestamp — emitted into the static HTML at the bottom of the page;
-// the cron-driven rebuild in .github/workflows/deploy.yml refreshes it daily.
-const lastUpdatedIso = new Date().toISOString();
+// "Last updated" = the most recent moment any connector actually attempted
+// to fetch data, taken from the in-memory snapshot. Stable across refreshes
+// of the same build (so the diff-stats logic's lastSeen.generatedAt only
+// advances when the data actually does). Falls back to the current time
+// when no snapshot is present (very first build, no scrapes yet).
+const snapshotForTs = getSnapshot();
+const attemptTimes = snapshotForTs
+  ? Object.values(snapshotForTs.connectors)
+      .map((c) => c?.lastAttempt?.at)
+      .filter((s): s is string => !!s)
+  : [];
+const lastUpdatedIso = attemptTimes.length > 0
+  ? attemptTimes.sort().at(-1)!
+  : new Date().toISOString();
 const lastUpdatedLabel = new Date(lastUpdatedIso).toLocaleDateString('en-US', {
   year: 'numeric',
   month: 'short',
@@ -65,6 +76,38 @@ const sortedAll = [...allProjects].sort((a, b) => {
 });
 
 const carouselReviews = pickCarouselReviews(allProjects, 10);
+
+const dashboardState = {
+  version: 1,
+  generatedAt: lastUpdatedIso,
+  hero: {
+    starsAndLikes: stats.starsAndLikes,
+    downloadsAndPulls: stats.downloadsAndPulls,
+    activeUsers: stats.activeUsers,
+    totalProjects: stats.totalProjects,
+  },
+  projects: Object.fromEntries(
+    sortedAll.map((p) => [p.id, {
+      stars: p.stats.stars ?? 0,
+      downloads: p.stats.downloads ?? 0,
+      downloadsMonthly: p.stats.downloadsMonthly ?? 0,
+      users: p.stats.users ?? 0,
+      installs: p.stats.installs?.value ?? 0,
+    }]),
+  ),
+  profiles: Object.fromEntries(
+    profiles.map((p) => [p.source, {
+      headline: {
+        label: p.headline.label,
+        value: typeof p.headline.value === 'number' ? p.headline.value : 0,
+      },
+      details: (p.details ?? []).map((d) => ({
+        label: d.label,
+        value: typeof d.value === 'number' ? d.value : 0,
+      })),
+    }]),
+  ),
+};
 ---
 
 <BaseLayout
@@ -113,10 +156,12 @@ const carouselReviews = pickCarouselReviews(allProjects, 10);
       >rx-dev-dashboard</a>
     </p>
   </footer>
+  <script type="application/json" id="dashboard-state" set:html={JSON.stringify(dashboardState)} is:inline />
 </BaseLayout>
 
 <script>
   import '../scripts/demo-deltas';
+  import '../scripts/diff-stats';
   import '../scripts/delta-tooltip';
   import '../scripts/delta-toggle';
 </script>

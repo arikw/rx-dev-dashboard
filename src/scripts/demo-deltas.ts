@@ -1,10 +1,9 @@
-type Direction = 'up' | 'down' | 'none';
-type StatKey = 'star' | 'download' | 'users' | 'projects';
-type Delta = { value: number; direction: Direction; label: string };
+import { injectDelta, populateVisitSummary, readHashParam, type DeltaInfo } from './delta-injection';
+
 type Scenario = {
   relativeTime: string;
-  heroDeltas: Record<StatKey, Delta>;
-  profileDeltas: Record<string, Record<string, Delta>>;
+  heroDeltas: Record<'star' | 'download' | 'users' | 'projects', DeltaInfo & { direction: 'up' | 'down' | 'none' }>;
+  profileDeltas: Record<string, Record<string, DeltaInfo & { direction: 'up' | 'down' | 'none' }>>;
   newProjectCount: number;
   removedProjectCount: number;
 };
@@ -67,62 +66,26 @@ const SCENARIOS: Record<string, Scenario> = {
   },
 };
 
-function formatNumber(n: number): string {
-  if (n >= 1000) {
-    const k = n / 1000;
-    return `${k.toFixed(k < 10 ? 1 : 0).replace(/\.0$/, '')}k`;
-  }
-  return String(n);
-}
-
-function injectDelta(slot: HTMLElement, delta: Delta, relativeTime: string): void {
-  if (delta.direction === 'none' || delta.value === 0) return;
-  const arrow = delta.direction === 'up' ? '▲' : '▼';
-  const sign = delta.direction === 'up' ? '+' : '−';
-  slot.classList.toggle('is-negative', delta.direction === 'down');
-  slot.innerHTML = `<span class="stat-delta-arrow" aria-hidden="true">${arrow}</span>${sign}${formatNumber(delta.value)}`;
-  const tooltipParts = [`${sign}${formatNumber(delta.value)} ${delta.label}`];
-  if (relativeTime) tooltipParts.push(relativeTime);
-  slot.dataset.tooltip = tooltipParts.join(' ');
-  slot.removeAttribute('hidden');
-}
-
-function populateVisitSummary(scenario: Scenario): void {
-  const el = document.querySelector<HTMLElement>('.visit-summary');
-  if (!el) return;
-  const parts: string[] = [];
-  if (scenario.newProjectCount > 0) {
-    const label = scenario.newProjectCount === 1 ? 'new project' : 'new projects';
-    parts.push(`<span class="visit-summary-new">${scenario.newProjectCount} ${label}</span>`);
-  }
-  if (scenario.removedProjectCount > 0) {
-    parts.push(`<span class="visit-summary-removed">${scenario.removedProjectCount} removed</span>`);
-  }
-  if (!parts.length) return;
-  const time = scenario.relativeTime ? ` ${scenario.relativeTime}` : '';
-  el.innerHTML = parts.join('<span class="visit-summary-sep">·</span>') + time;
-  el.removeAttribute('hidden');
-}
-
 function activate(): void {
-  const params = new URLSearchParams(location.search);
-  const name = params.get('demo');
+  const name = readHashParam('stats-demo');
   if (!name) return;
   const scenario = SCENARIOS[name];
   if (!scenario) return;
 
   for (const [key, delta] of Object.entries(scenario.heroDeltas)) {
+    if (delta.direction === 'none') continue;
     const tile = document.querySelector(`.stat[data-stat-key="${key}"]`);
     const slot = tile?.querySelector<HTMLElement>('.stat-delta');
-    if (slot) injectDelta(slot, delta, scenario.relativeTime);
+    if (slot) injectDelta(slot, delta as DeltaInfo, scenario.relativeTime);
   }
 
   for (const [source, deltas] of Object.entries(scenario.profileDeltas)) {
     const chip = document.querySelector(`.profile-chip[data-profile-source="${source}"]`);
     if (!chip) continue;
     for (const [factLabel, delta] of Object.entries(deltas)) {
+      if (delta.direction === 'none') continue;
       const slot = chip.querySelector<HTMLElement>(`.stat-delta[data-fact-label="${CSS.escape(factLabel)}"]`);
-      if (slot) injectDelta(slot, delta, scenario.relativeTime);
+      if (slot) injectDelta(slot, delta as DeltaInfo, scenario.relativeTime);
     }
   }
 
@@ -134,7 +97,11 @@ function activate(): void {
     }
   }
 
-  populateVisitSummary(scenario);
+  populateVisitSummary({
+    newProjectCount: scenario.newProjectCount,
+    removedProjectCount: scenario.removedProjectCount,
+    relativeTime: scenario.relativeTime,
+  });
 }
 
 if (document.readyState === 'loading') {
