@@ -77,36 +77,44 @@ const sortedAll = [...allProjects].sort((a, b) => {
 
 const carouselReviews = pickCarouselReviews(allProjects, 10);
 
+import { createHash } from 'node:crypto';
+const heroState = {
+  starsAndLikes: stats.starsAndLikes,
+  downloadsAndPulls: stats.downloadsAndPulls,
+  activeUsers: stats.activeUsers,
+  totalProjects: stats.totalProjects,
+};
+const projectsState = Object.fromEntries(
+  sortedAll.map((p) => [p.id, {
+    stars: p.stats.stars ?? 0,
+    downloads: p.stats.downloads ?? 0,
+    downloadsMonthly: p.stats.downloadsMonthly ?? 0,
+    users: p.stats.users ?? 0,
+    installs: p.stats.installs?.value ?? 0,
+  }]),
+);
+const profilesState = Object.fromEntries(
+  profiles.map((p) => [p.source, {
+    headline: {
+      label: p.headline.label,
+      value: typeof p.headline.value === 'number' ? p.headline.value : 0,
+    },
+    details: (p.details ?? []).map((d) => ({
+      label: d.label,
+      value: typeof d.value === 'number' ? d.value : 0,
+    })),
+  }]),
+);
+const contentHash = createHash('sha1')
+  .update(JSON.stringify({ hero: heroState, projects: projectsState, profiles: profilesState }))
+  .digest('hex');
 const dashboardState = {
-  version: 1,
+  version: 2,
   generatedAt: lastUpdatedIso,
-  hero: {
-    starsAndLikes: stats.starsAndLikes,
-    downloadsAndPulls: stats.downloadsAndPulls,
-    activeUsers: stats.activeUsers,
-    totalProjects: stats.totalProjects,
-  },
-  projects: Object.fromEntries(
-    sortedAll.map((p) => [p.id, {
-      stars: p.stats.stars ?? 0,
-      downloads: p.stats.downloads ?? 0,
-      downloadsMonthly: p.stats.downloadsMonthly ?? 0,
-      users: p.stats.users ?? 0,
-      installs: p.stats.installs?.value ?? 0,
-    }]),
-  ),
-  profiles: Object.fromEntries(
-    profiles.map((p) => [p.source, {
-      headline: {
-        label: p.headline.label,
-        value: typeof p.headline.value === 'number' ? p.headline.value : 0,
-      },
-      details: (p.details ?? []).map((d) => ({
-        label: d.label,
-        value: typeof d.value === 'number' ? d.value : 0,
-      })),
-    }]),
-  ),
+  contentHash,
+  hero: heroState,
+  projects: projectsState,
+  profiles: profilesState,
 };
 ---
 

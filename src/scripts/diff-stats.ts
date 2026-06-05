@@ -14,8 +14,9 @@ type ProfileSnapshot = {
 };
 
 type DashboardState = {
-  version: 1;
+  version: 2;
   generatedAt: string;
+  contentHash: string;
   hero: {
     starsAndLikes: number;
     downloadsAndPulls: number;
@@ -27,9 +28,11 @@ type DashboardState = {
 };
 
 type StoredState = {
-  version: 1;
+  version: 2;
   diffBase: DashboardState;
+  diffBaseSetAt: string;
   lastSeen: DashboardState;
+  lastSeenSetAt: string;
 };
 
 const STORAGE_KEY = 'rx-dashboard-last-visit';
@@ -39,7 +42,7 @@ function readCurrent(): DashboardState | null {
   if (!el?.textContent) return null;
   try {
     const parsed = JSON.parse(el.textContent);
-    if (parsed?.version === 1 && parsed.generatedAt) return parsed as DashboardState;
+    if (parsed?.version === 2 && parsed.contentHash) return parsed as DashboardState;
   } catch {
     return null;
   }
@@ -51,7 +54,15 @@ function readStored(): StoredState | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (parsed?.version === 1 && parsed.diffBase && parsed.lastSeen) return parsed as StoredState;
+    if (
+      parsed?.version === 2 &&
+      parsed.diffBase?.contentHash &&
+      parsed.lastSeen?.contentHash &&
+      typeof parsed.diffBaseSetAt === 'string' &&
+      typeof parsed.lastSeenSetAt === 'string'
+    ) {
+      return parsed as StoredState;
+    }
   } catch {
     return null;
   }
@@ -67,14 +78,14 @@ function saveStored(state: StoredState): void {
 }
 
 const HERO_MAP = [
-  { key: 'starsAndLikes',    stat: 'star',     label: 'stars & likes' },
+  { key: 'starsAndLikes',     stat: 'star',     label: 'stars & likes' },
   { key: 'downloadsAndPulls', stat: 'download', label: 'downloads' },
-  { key: 'activeUsers',      stat: 'users',    label: 'active users' },
-  { key: 'totalProjects',    stat: 'projects', label: 'projects' },
+  { key: 'activeUsers',       stat: 'users',    label: 'active users' },
+  { key: 'totalProjects',     stat: 'projects', label: 'projects' },
 ] as const;
 
-function injectDeltas(base: DashboardState, current: DashboardState): void {
-  const relativeTime = `since ${formatRelativeTime(base.generatedAt)}`;
+function injectDeltas(base: DashboardState, current: DashboardState, diffBaseSetAt: string): void {
+  const relativeTime = `since ${formatRelativeTime(diffBaseSetAt)}`;
 
   for (const { key, stat, label } of HERO_MAP) {
     const delta = current.hero[key] - base.hero[key];
@@ -134,21 +145,26 @@ function init(): void {
   if (readHashParam('stats-demo')) return;
   const current = readCurrent();
   if (!current) return;
+  const now = new Date().toISOString();
 
   const stored = readStored();
   if (!stored) {
-    saveStored({ version: 1, diffBase: current, lastSeen: current });
+    saveStored({ version: 2, diffBase: current, diffBaseSetAt: now, lastSeen: current, lastSeenSetAt: now });
     return;
   }
 
-  if (stored.lastSeen.generatedAt !== current.generatedAt) {
+  if (stored.lastSeen.contentHash !== current.contentHash) {
     stored.diffBase = stored.lastSeen;
+    stored.diffBaseSetAt = stored.lastSeenSetAt;
     stored.lastSeen = current;
-    saveStored(stored);
+    stored.lastSeenSetAt = now;
+  } else {
+    stored.lastSeenSetAt = now;
   }
+  saveStored(stored);
 
-  if (stored.diffBase.generatedAt === current.generatedAt) return;
-  injectDeltas(stored.diffBase, current);
+  if (stored.diffBase.contentHash === current.contentHash) return;
+  injectDeltas(stored.diffBase, current, stored.diffBaseSetAt);
 }
 
 if (document.readyState === 'loading') {
