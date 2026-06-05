@@ -12,10 +12,11 @@ Designed to be cloned — edit one config file, push, and you have your own.
 git clone https://github.com/<your-user>/rx-dev-dashboard.git
 cd rx-dev-dashboard
 npm install
+npm run init       # scaffold projects.config.local.ts from your git remote
 npm run dev
 ```
 
-Edit `projects.config.ts` to point at your own handles, then refresh.
+Open `projects.config.local.ts` and fill in any optional fields you care about (chrome extension IDs, featured slugs, manual entries), then refresh.
 
 ## Set up your own dashboard
 
