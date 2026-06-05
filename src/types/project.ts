@@ -81,8 +81,11 @@ export type ProfileFact = {
   label: string;
   /** Headline metric — surfaced prominently (reputation, follower count, …). */
   headline: { value: number | string; label: string };
-  /** Secondary details — small chips beside the headline (badges, repo count). */
-  details?: Array<{ label: string; value: number | string }>;
+  /** Secondary details — small chips beside the headline (badges, repo count).
+   *  Set `iconBefore` when the label is an icon glyph (e.g. `★`) that should
+   *  precede the value instead of following it, matching the card-stats
+   *  style `★ 339`. */
+  details?: Array<{ label: string; value: number | string; iconBefore?: boolean }>;
   /** Profile avatar / photo URL. Used by AuthorBio to render the dashboard
    *  owner's portrait. Connectors that surface a public profile image
    *  (GitHub's avatar_url, Stack Overflow's profile_image) populate this when

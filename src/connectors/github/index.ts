@@ -60,8 +60,12 @@ export default defineConnector({
         0,
       );
       if (totalStars > 0) {
+        // Render the label as a star glyph so the chip stays compact
+        // and matches the Stack Overflow row's icon-style labels
+        // (🥇/🥈/🥉). iconBefore puts the star before the count
+        // ("★ 440") to match the card-stats style.
         profile.details = [
-          { label: 'total stars', value: totalStars },
+          { label: '★', value: totalStars, iconBefore: true },
           ...(profile.details ?? []),
         ];
       }

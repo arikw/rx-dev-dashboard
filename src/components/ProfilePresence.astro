@@ -40,8 +40,13 @@ function renderValue(v: number | string): string {
               <span class="profile-chip-details">
                 {p.details.map((d) => (
                   <span class="profile-chip-detail">
+                    {d.iconBefore && (
+                      <span class="profile-chip-detail-label profile-chip-detail-label--icon">{d.label}</span>
+                    )}
                     <span class="profile-chip-detail-value">{renderValue(d.value)}</span>
-                    <span class="profile-chip-detail-label">{d.label}</span>
+                    {!d.iconBefore && (
+                      <span class="profile-chip-detail-label">{d.label}</span>
+                    )}
                     <span class="stat-delta stat-delta--inline" hidden data-fact-label={d.label}></span>
                   </span>
                 ))}
