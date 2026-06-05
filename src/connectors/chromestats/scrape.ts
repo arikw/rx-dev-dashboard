@@ -52,26 +52,34 @@ export type ChromeStatsApp = {
   videos?: string[];
 };
 
-// chrome-stats sits behind Cloudflare. curl with realistic headers works;
-// Node's fetch (undici) is fingerprinted and 403'd. Same trick as appbrain.
+// chrome-stats sits behind Cloudflare. Plain curl's TLS handshake is now
+// fingerprinted and 403'd regardless of UA — Cloudflare gates by JA3/JA4,
+// not Mozilla string. Set CURL_IMPERSONATE_BIN to a curl-impersonate
+// browser-impersonating binary (e.g. /path/to/curl_chrome136) and the
+// scraper uses it instead; otherwise falls back to the vanilla curl call
+// the previously-cached scrapes still came through. Keeps cloners with
+// no special setup working in cache+commit mode, while the maintainer's
+// local seed can refresh the cache with a single env-var.
+const IMPERSONATE_BIN = process.env.CURL_IMPERSONATE_BIN;
 async function fetchHtml(url: string): Promise<string | null> {
   try {
-    const { stdout } = await run(
-      'curl',
-      [
-        '-sL',
-        '--max-time',
-        '25',
-        '-A',
-        UA,
-        '-H',
-        'Accept-Language: en-US,en;q=0.9',
-        '-H',
-        'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        url,
-      ],
-      { maxBuffer: 16 * 1024 * 1024 },
-    );
+    const args = IMPERSONATE_BIN
+      ? ['-sL', '--max-time', '25', url]
+      : [
+          '-sL',
+          '--max-time',
+          '25',
+          '-A',
+          UA,
+          '-H',
+          'Accept-Language: en-US,en;q=0.9',
+          '-H',
+          'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          url,
+        ];
+    const { stdout } = await run(IMPERSONATE_BIN ?? 'curl', args, {
+      maxBuffer: 16 * 1024 * 1024,
+    });
     return stdout || null;
   } catch {
     return null;
