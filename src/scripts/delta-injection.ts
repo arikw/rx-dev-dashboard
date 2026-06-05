@@ -21,16 +21,32 @@ export function injectDelta(slot: HTMLElement, delta: DeltaInfo, relativeTime: s
   slot.removeAttribute('hidden');
 }
 
-export function populateVisitSummary(opts: { newProjectCount: number; removedProjectCount: number; relativeTime: string }): void {
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+export function populateVisitSummary(opts: {
+  newProjectCount: number;
+  removedProjectCount: number;
+  relativeTime: string;
+  newProjectNames?: string[];
+  removedProjectNames?: string[];
+}): void {
   const el = document.querySelector<HTMLElement>('.visit-summary');
   if (!el) return;
   const parts: string[] = [];
   if (opts.newProjectCount > 0) {
     const label = opts.newProjectCount === 1 ? 'new project' : 'new projects';
-    parts.push(`<span class="visit-summary-new">${opts.newProjectCount} ${label}</span>`);
+    const tip = opts.newProjectNames?.length ? ` data-tooltip="${escapeAttr(opts.newProjectNames.join(', '))}"` : '';
+    parts.push(`<span class="visit-summary-new"${tip}>${opts.newProjectCount} ${label}</span>`);
   }
   if (opts.removedProjectCount > 0) {
-    parts.push(`<span class="visit-summary-removed">${opts.removedProjectCount} removed</span>`);
+    const tip = opts.removedProjectNames?.length ? ` data-tooltip="${escapeAttr(opts.removedProjectNames.join(', '))}"` : '';
+    parts.push(`<span class="visit-summary-removed"${tip}>${opts.removedProjectCount} removed</span>`);
   }
   if (!parts.length) return;
   const time = opts.relativeTime ? ` ${opts.relativeTime}` : '';

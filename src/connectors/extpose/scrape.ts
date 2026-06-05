@@ -18,6 +18,12 @@ export type ExtposeApp = {
   lastUpdate?: string;
   /** True when the page shows a "Delisted on YYYY-MM-DD" marker. */
   isDeleted?: boolean;
+  /** Square 128×128 icon, from the page's <img itemprop="image"> tag. The
+   *  same Google-CDN bytes the Chrome Web Store uses — stays alive after
+   *  a listing is removed, which is the whole point. */
+  icon?: string;
+  /** 640×400 promo banner, from og:image. */
+  banner?: string;
 };
 
 // extpose sits behind Cloudflare like chrome-stats and appbrain; curl with
@@ -109,6 +115,16 @@ export async function scrapeOne(extId: string): Promise<ExtposeApp | null> {
   const version = pickMetaContent(doc, 'itemprop', 'softwareVersion');
   const lastUpdate = pickMetaContent(doc, 'itemprop', 'dateModified');
 
+  // Icon: <img itemprop="image" src="..."> — square Google-CDN image. The
+  // attribute order varies (some pages put src before itemprop), so capture
+  // both arrangements.
+  const iconMatch =
+    doc.match(/<img[^>]+itemprop="image"[^>]+src="([^"]+)"/) ??
+    doc.match(/<img[^>]+src="([^"]+)"[^>]+itemprop="image"/);
+  const icon = iconMatch ? decodeEntities(iconMatch[1]) : undefined;
+
+  const banner = pickMetaContent(doc, 'property', 'og:image');
+
   return {
     id: extId,
     url,
@@ -119,5 +135,7 @@ export async function scrapeOne(extId: string): Promise<ExtposeApp | null> {
     version,
     lastUpdate,
     isDeleted: /\bDelisted on\s+\d{4}-\d{2}-\d{2}/.test(doc),
+    icon,
+    banner,
   };
 }

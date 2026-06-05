@@ -47,10 +47,11 @@ export const fetchExtposeProjects = async (
     .filter((a): a is ExtposeApp => !!a)
     .map<ConnectorResult>((a) => ({
       origin: { platform: 'chrome', id: a.id },
-      // Visual fields (icon/banner/videos/reviews) are deliberately omitted —
-      // chromestats owns those for the chrome:* bucket. This mirror only
-      // contributes the friendly title, description, and reconcilable stats
-      // so the dashboard stays usable when chromestats is Cloudflare-blocked.
+      // Icon + banner are emitted as fallbacks: when chromestats and the
+      // chrome connector also supply them, the reconciler keeps chromestats
+      // first (same asOf, earlier scrape order), so the visible image is
+      // unchanged. They only win when those two sources have nothing —
+      // typically a delisted listing on a Cloudflare-blocked runner.
       mirror: {
         platform: 'extpose',
         id: a.id,
@@ -60,6 +61,8 @@ export const fetchExtposeProjects = async (
         description: a.description,
         tags: ['chrome-extension'],
         kind: 'extension',
+        icon: a.icon,
+        banner: a.banner,
         stats: {
           // Match chromestats's behavior: drop the user count once the
           // listing is delisted — a stale snapshot isn't a current count.

@@ -10,6 +10,12 @@ export type ManualOrigin = {
   asOf?: string;
   firstReleased?: number;
   stats?: CanonicalStats;
+  /** Flag the underlying resource as retired even when no scraper currently
+   *  surfaces that fact. The Play Store and CWS hide a removed listing
+   *  entirely (the connector returns nothing) instead of marking it dead,
+   *  so the only way to express "this project is retired" for a Play / CWS
+   *  origin is via this manual hint. */
+  retired?: boolean;
 };
 
 export type ManualProject = {

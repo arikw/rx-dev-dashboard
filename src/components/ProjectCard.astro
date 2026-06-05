@@ -102,6 +102,21 @@ for (const s of p.sources) {
 // for hover verification.
 const homepageChip = resolveHomepageChip(p);
 
+// Title link priority: project's own homepage → first non-github listing
+// (npm, docker, chrome, etc.) → github → primary origin URL fallback.
+// "github page if those don't exist" — github usually duplicates source-
+// code information already conveyed by the GH chip; an npm/docker/CWS
+// landing page is more interesting to click on a title.
+function resolveTitleHref(): string {
+  if (p.homepage) return p.homepage;
+  const urls = p.sourceUrls ?? {};
+  const nonGithub = Object.entries(urls).find(([k, v]) => k !== 'github' && v);
+  if (nonGithub) return nonGithub[1];
+  if (urls.github) return urls.github;
+  return p.url || '';
+}
+const titleHref = resolveTitleHref();
+
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
 
 ---
@@ -120,7 +135,7 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
   <span class="card-new-ribbon" hidden>NEW</span>
   <ProjectThumb project={p} />
   <header class="card-head">
-    <a class="card-title" href={p.url} rel="noopener" target="_blank">
+    <a class="card-title" href={titleHref} rel="noopener" target="_blank">
       <h3>{p.title}</h3>
     </a>
     <span class="card-sources">

@@ -135,6 +135,7 @@ function manualOrigins(): ConnectorResult[] {
         asOf: fact.asOf,
         firstReleased: fact.firstReleased,
         stats: fact.stats,
+        retired: fact.retired,
       },
     });
   }

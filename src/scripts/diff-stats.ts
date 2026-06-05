@@ -25,6 +25,9 @@ type DashboardState = {
   };
   projects: Record<string, ProjectStats>;
   profiles: Record<string, ProfileSnapshot>;
+  /** Optional friendly title for each project id — used for the
+   *  visit-summary "N new projects" hover tooltip. */
+  projectTitles?: Record<string, string>;
 };
 
 type StoredState = {
@@ -124,20 +127,28 @@ function injectDeltas(base: DashboardState, current: DashboardState, diffBaseSet
 
   const baseIds = new Set(Object.keys(base.projects));
   const currentIds = new Set(Object.keys(current.projects));
-  let newCount = 0;
+  const titleFor = (id: string): string =>
+    current.projectTitles?.[id] ?? base.projectTitles?.[id] ?? id;
+  const newProjectNames: string[] = [];
   for (const id of currentIds) {
     if (baseIds.has(id)) continue;
-    newCount++;
+    newProjectNames.push(titleFor(id));
     const card = document.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
     const ribbon = card?.querySelector<HTMLElement>('.card-new-ribbon');
     if (ribbon) ribbon.removeAttribute('hidden');
   }
-  let removedCount = 0;
+  const removedProjectNames: string[] = [];
   for (const id of baseIds) {
-    if (!currentIds.has(id)) removedCount++;
+    if (!currentIds.has(id)) removedProjectNames.push(titleFor(id));
   }
-  if (newCount > 0 || removedCount > 0) {
-    populateVisitSummary({ newProjectCount: newCount, removedProjectCount: removedCount, relativeTime });
+  if (newProjectNames.length > 0 || removedProjectNames.length > 0) {
+    populateVisitSummary({
+      newProjectCount: newProjectNames.length,
+      removedProjectCount: removedProjectNames.length,
+      newProjectNames,
+      removedProjectNames,
+      relativeTime,
+    });
   }
 }
 

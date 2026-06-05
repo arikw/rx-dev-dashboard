@@ -37,6 +37,10 @@ function derivedOriginKeys(r: ConnectorResult): string[] {
 }
 
 // Preference for choosing a project's canonical identity (lower = better home).
+// Mirror platforms get explicit ranks too so the firstField / sourceUrls
+// pickers are deterministic when several mirrors of the same origin all
+// publish data with the same asOf (e.g. chrome-stats + extpose for one
+// chrome extension). Without these the JS sort is unstable on tied keys.
 const PLATFORM_RANK: Record<string, number> = {
   github: 0,
   npm: 1,
@@ -45,6 +49,10 @@ const PLATFORM_RANK: Record<string, number> = {
   'google-play': 4,
   chrome: 5,
   manual: 6,
+  'chrome-stats': 10,
+  appbrain: 11,
+  apkpure: 12,
+  extpose: 13,
 };
 const rankOf = (p: string): number => PLATFORM_RANK[p] ?? 99;
 

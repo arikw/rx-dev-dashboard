@@ -93,6 +93,9 @@ const projectsState = Object.fromEntries(
     installs: p.stats.installs?.value ?? 0,
   }]),
 );
+const projectTitlesState = Object.fromEntries(
+  sortedAll.map((p) => [p.id, p.title]),
+);
 const profilesState = Object.fromEntries(
   profiles.map((p) => [p.source, {
     headline: {
@@ -105,6 +108,8 @@ const profilesState = Object.fromEntries(
     })),
   }]),
 );
+// projectTitles intentionally OUT of contentHash — a renamed title shouldn't
+// fire the "new build" delta logic; only the project set + stats matter.
 const contentHash = createHash('sha1')
   .update(JSON.stringify({ hero: heroState, projects: projectsState, profiles: profilesState }))
   .digest('hex');
@@ -115,6 +120,7 @@ const dashboardState = {
   hero: heroState,
   projects: projectsState,
   profiles: profilesState,
+  projectTitles: projectTitlesState,
 };
 ---
 
