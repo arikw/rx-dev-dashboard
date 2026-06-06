@@ -75,7 +75,16 @@ const sortedAll = [...allProjects].sort((a, b) => {
   return a.title.localeCompare(b.title);
 });
 
-const carouselReviews = pickCarouselReviews(allProjects, 10);
+// When the local config sets a default language filter (e.g. 'en'), restrict
+// the carousel's review pool to projects whose contentLanguage matches —
+// keeps the carousel aligned with the gallery's default view, so a visitor
+// landing fresh doesn't see testimonials for a Hebrew app that the gallery
+// itself is hiding from them at the same moment.
+const defaultLang = config.meta.defaultLanguage;
+const reviewPool = defaultLang
+  ? allProjects.filter((p) => (p.contentLanguage || 'en') === defaultLang)
+  : allProjects;
+const carouselReviews = pickCarouselReviews(reviewPool, 10);
 
 import { createHash } from 'node:crypto';
 const heroState = {

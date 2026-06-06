@@ -5,6 +5,7 @@ import { sourceLabel } from '../lib/source-label';
 import { getPlatformToSourceGroup } from '../connectors/_registry';
 import { featuredScore } from '../lib/featured-score';
 import { resolveHomepageChip } from '../lib/homepage-chip';
+import { resolveTitleHref } from '../lib/title-href';
 import ProjectThumb from './ProjectThumb.astro';
 
 interface Props {
@@ -108,21 +109,7 @@ for (const s of p.sources) {
 // chips do; the actual URL is exposed via the link's title attribute
 // for hover verification.
 const homepageChip = resolveHomepageChip(p);
-
-// Title link priority: project's own homepage → first non-github listing
-// (npm, docker, chrome, etc.) → github → primary origin URL fallback.
-// "github page if those don't exist" — github usually duplicates source-
-// code information already conveyed by the GH chip; an npm/docker/CWS
-// landing page is more interesting to click on a title.
-function resolveTitleHref(): string {
-  if (p.homepage) return p.homepage;
-  const urls = p.sourceUrls ?? {};
-  const nonGithub = Object.entries(urls).find(([k, v]) => k !== 'github' && v);
-  if (nonGithub) return nonGithub[1];
-  if (urls.github) return urls.github;
-  return p.url || '';
-}
-const titleHref = resolveTitleHref();
+const titleHref = resolveTitleHref(p);
 
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
 

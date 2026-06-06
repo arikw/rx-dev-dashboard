@@ -1,203 +1,200 @@
-# rx-dev-dashboard
+# RX Portfolio — A live aggregative developer profile
 
-Config-driven dev dashboard and project showcase. Built with [Astro](https://astro.build/), publishable to GitHub Pages or any other static host.
+A self-updating portfolio for developers who ship across more than one platform.
 
-Pulls public signals from **GitHub**, **npm**, **Docker Hub**, and **Chrome Web Store** at build time, merges them with manual entries you control, and renders an "impact dashboard" plus a project grid with tag filtering.
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm--NC--1.0.0-blue.svg)](./LICENSE)
+[![Built with Astro 6](https://img.shields.io/badge/Built%20with-Astro%206-FF5D01?logo=astro&logoColor=white)](https://astro.build/)
+[![Node ≥ 22](https://img.shields.io/badge/node-%E2%89%A522-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 
-Designed to be cloned — edit one config file, push, and you have your own.
+Drop in your handles. Get a dashboard with live stats from every platform your projects live on — refreshed automatically, deployed free on GitHub Pages, no backend.
 
-## Quick start
+**Live demo:** <https://wzmn.net/projects> · [diff-layer preview](https://wzmn.net/projects/#stats-demo=mixed)
+
+## Why this exists
+
+When you ship across more than one platform, no single page tells the whole story. Your GitHub profile only shows your repos. Your Chrome Web Store listing only shows one extension. Your npm page only shows your packages. None of them update themselves when the numbers shift.
+
+This pulls every project — wherever it lives — onto one page that updates itself, so the impact numbers stay honest without you having to maintain anything.
+
+## Features
+
+- ✅ **All your projects in one place** — live, retired, paid closed-source, and Wayback-archived entries for projects you've sold
+- ✅ **Live numbers** — stars, downloads, weekly active users, install counts, ratings, refreshed nightly by a GitHub Actions cron
+- ✅ **Real banner art** — actual icons, screenshots, and marquees from each project's store listing
+- ✅ **Filterable gallery** — filter by source, tag, content language, status (Live / Retired / Updated since last visit); sort by Featured / Popularity / Year
+- ✅ **Deep-linkable filter state** — `#source=chrome&tag=blocker&sort=year` is shareable and survives a refresh
+- ✅ **"Since last visit" diff layer** — NEW ribbons, per-card stat-move chips (`▲ +250 downloads`), hero summary, one-click hide. State in `localStorage`, no backend
+- ✅ **Profile cards** — GitHub (public repos · ★ total · followers) and Stack Overflow (reputation · 🥇🥈🥉 badges)
+- ✅ **Hero stat tiles** — sublabels enumerate only the sources that actually contributed (`cumulative install events across npm and Docker`)
+- ✅ **Reviews carousel** — auto-rotating testimonials from CWS, AppBrain, and manual entries
+- ✅ **Mobile-first responsive** — tooltips clamp to viewport, dark + light mode (system + manual toggle), sticky scroll-aware header
+- ✅ **PWA-installable** — sitemap, robots.txt, manifest, service worker
+- ✅ **Built-in media cache** — every banner / icon / MP4 downloaded at build time so your dashboard survives upstream link rot
+- ✅ **Resilient** — connectors degrade gracefully; a hiccup on one source never blanks the dashboard; `/status.json` surfaces what's broken
+- ✅ **Auto-detected retirement** — Play Store 404s and Chrome Web Store `isDeleted` flags surface as retired-project state automatically
+
+## Setup
+
+After you've forked (see [Deploy](#deploy) below for the GitHub Pages flow):
 
 ```bash
 git clone https://github.com/<your-user>/rx-dev-dashboard.git
 cd rx-dev-dashboard
 npm install
-npm run init       # scaffold projects.config.local.ts from your git remote
-npm run dev
+npm run init       # auto-detects your GitHub handle from your git remote
+npm run dev        # → http://localhost:4321/
 ```
 
-Open `projects.config.local.ts` and fill in any optional fields you care about (chrome extension IDs, featured slugs, manual entries), then refresh.
+`init` reads your git remote and pre-fills `projects.config.local.ts` with sensible defaults. **The first `dev` view is empty by design** — drop your real handles (npm, Docker, Chrome extension IDs, Play package names) into the generated file and refresh. The first full build with real handles takes a few minutes (every connector fetches fresh + every banner/icon gets cached); subsequent builds reuse the on-disk cache and run in seconds.
 
-## Set up your own dashboard
+## Deploy
 
-The fastest path to a working dashboard on your domain:
+The fast path — fork this repo:
 
-### 1. Fork this repo
+1. Click **Fork** at the top of this page.
+2. Enable GitHub Actions on your fork (forks have Actions disabled by default):
+   - **Web UI:** your fork's **Actions** tab → click "I understand my workflows, go ahead and enable them"
+   - **CLI:** `gh api -X PUT repos/<your-user>/rx-dev-dashboard/actions/permissions -F enabled=true`
+3. Settings → **Pages → Source: GitHub Actions**.
+4. Clone your fork locally, `npm install`, `npm run init`, fill in handles, commit + push.
 
-Click **Fork** on this repo's GitHub page.
+The workflow builds and publishes on every push, and on a daily cron at 08:00 UTC so stats stay fresh without manual touches.
 
-### 2. Enable Actions on your fork
+**Custom domain or sub-path?** Edit `deployment.site` and `deployment.base` in `projects.config.local.ts` — the `base` prefix carries through every internal link and canonical tag, so you can also proxy GitHub Pages from a sub-path on an existing site.
 
-GitHub disables Actions on forks by default. Turn them on:
+## Built-in sources
 
-- **Web UI:** go to your fork's **Actions** tab → click **I understand my workflows, go ahead and enable them**.
-- **CLI:** `gh api -X PUT repos/<your-user>/<your-fork>/actions/permissions -F enabled=true`
+| Origin platform     | Mirror sources                | Adds to                                       |
+|---------------------|-------------------------------|-----------------------------------------------|
+| GitHub              | _(self)_                      | stars, forks, archived flag, repo metadata, Pages favicon, profile card (public repos · followers · ★ total) |
+| npm                 | _(self)_                      | weekly + lifetime downloads, README, version  |
+| Docker Hub          | _(self)_                      | pulls, stars                                  |
+| Chrome Web Store    | `chromestats`, `extpose`      | banner / icon, weekly active users, rating, reviews, delisted detection |
+| Google Play         | `appbrain`, `apkpure`         | install tier, rating + histogram, banner / screenshots, 404-detected retirement |
+| GNOME Extensions    | _(self)_                      | downloads, version compatibility              |
+| Stack Overflow      | _(self)_                      | profile card (reputation · 🥇🥈🥉 badges)       |
 
-### 3. Scaffold `projects.config.local.ts` with `npm run init`
+Each source with a mirror has a fallback chain, so an API hiccup or an anti-bot gate on one source never blanks the dashboard. A `manual` connector handles closed-source projects, retired listings, Wayback snapshots, and authoritative overrides — see [`docs/skills/add-manual-entry.md`](docs/skills/add-manual-entry.md).
 
-```bash
-npm install
-npm run init
-```
+**Want to add a new source?** Connectors auto-discover — one new folder under `src/connectors/` is all it takes. See [`docs/connectors.md`](docs/connectors.md) for the manifest pattern.
 
-The init script reads `git remote get-url origin`, extracts the GitHub user + repo, and writes `projects.config.local.ts` pre-filled with:
+## Customising
 
-- `deployment.site: 'https://<user>.github.io'`
-- `deployment.base: '/<repo>'`
-- `user.github: '<user>'`
+- **`projects.config.ts`** — committed defaults. Edit when changes should ship to upstream cloners.
+- **`projects.config.local.ts`** — your private overrides (real handles, manual entries, featured pins, language preference). Shallow-merged over the base config at build time. Not in the committed `.gitignore`, so you can choose to commit yours or keep it untracked via `.git/info/exclude`.
+- **`src/content/projects/<slug>.mdx`** — optional rich detail page per project. Slug matches the project id. A "Details →" link surfaces on the matching card.
+- **`thumbFit: 'contain'` + `thumbBg: '<colour>'`** on a manual entry letterboxes screenshots that don't crop nicely (J2ME phone art, retro-resolution captures, anything with built-in padding).
+- **Media cache is on by default** — every banner, icon and MP4 a connector references is downloaded into `public/_cache/<connector>/<hash>.<ext>` so the deployed dashboard survives upstream link rot. Toggle off via `media: { cache: false }`.
 
-Plus commented stubs for `sources.chrome.extensionIds`, `featured`, and `manual` that you can fill in if relevant. The loader shallow-merges this local file over `projects.config.ts` at build time — anything you don't override falls through to the defaults. That keeps your fork from fighting upstream `projects.config.ts` updates when you pull bug fixes.
-
-If your real deployment lives somewhere other than GitHub Pages (a custom domain, a sub-path on an existing site, etc.), edit `deployment.site` and `deployment.base` to match.
-
-If you'd rather keep your handles out of git, add `projects.config.local.ts` to your fork's `.gitignore` or to `.git/info/exclude`. (Editing `projects.config.ts` directly works too, but you'll have merge conflicts on every upstream pull.)
-
-### 4. Enable GitHub Pages
-
-Settings → Pages → Source: **GitHub Actions**.
-
-### 5. Push (or trigger manually)
-
-Push to the default branch — the workflow builds and deploys. A daily cron at 08:00 UTC also rebuilds so source-fetched stats stay fresh without manual pushes.
-
-To trigger a one-off build without pushing: Actions tab → **Deploy** → **Run workflow**.
-
-> Prefer a standalone repo over a fork? **Use this template → Create a new repository** also works — that path skips step 2 (Actions are enabled by default on template-created repos).
-
-### 6. (Optional) Verify the deploy with `npm run status`
-
-After the deploy lands, run `npm run status` locally to confirm the dashboard built cleanly. See [Checking dashboard health](#checking-dashboard-health) below for what the output looks like and how to fix anything it flags.
-
-## Inspecting connector data
-
-Two views into what each connector returned and when:
-
-- **`/data.json`** — emitted on every build at the site root (e.g. `https://yoursite.example/data.json`). Includes the merged project list plus a per-connector snapshot.
-- **`generated/snapshot.json`** — the persisted snapshot. Gitignored locally; the scheduled workflow commits it back to the repo as a durable backup (visible in the repo browser).
-
-Each connector's snapshot includes a `lastScrapedAt` timestamp. If a source fails on the next run (API outage, rate limit, scrape regression), the loader falls back to that connector's most recent successful scrape — only the affected source goes stale, never the whole dashboard.
-
-## Checking dashboard health
+## Health check
 
 ```bash
 npm run status
 ```
 
-Auto-detects your dashboard URL from `projects.config.ts` (and `projects.config.local.ts` when present), hits `/status.json` with a cache-busting query string, and prints a human-readable summary. Exit code is 0 when everything's healthy, 1 when something needs attention — usable in CI / pre-deploy checks.
+Hits your deployed `/status.json` and prints a human-readable summary. Exit 0 when clean, exit 1 when something needs attention — usable in CI / pre-deploy hooks.
 
-Example output when everything's clean:
-
-```
-✓ Status: HEALTHY https://yoursite.example/status.json
-  All 10 connectors fully covered, no hidden projects.
-```
-
-Example output when something needs your attention:
+Example output when something's off:
 
 ```
-✗ Status: NEEDS ATTENTION https://yoursite.example/status.json
-
+✗ Status: NEEDS ATTENTION  https://yoursite.example/status.json
   ↳ Partial coverage (1):
-      • chromestats: 4/6 extension ids missing (likely Cloudflare block)
+      • chromestats: 4/6 extension ids missing
   ↳ Hidden projects (1):
       • jdmiahadpnljimfcnfaebjggbfkjkgan
         no friendly title — connector enrichment data missing
-
-  Fix  (typically: a Cloudflare-gated source the runner can't reach):
-    Run npm run seed — builds locally to fill the caches, commits the
-    refresh, pushes, and dispatches the deploy. Re-run npm run status after.
+  Fix: npm run seed
 ```
 
-When something needs attention, the single command:
+When it flags trouble, one command takes care of it:
 
 ```bash
 npm run seed
 ```
 
-…builds locally (residential IPs aren't blocked by Cloudflare like Azure-hosted runners are), commits the refreshed `generated/` + `public/_cache/`, pushes, and dispatches the deploy. Falls back to printed instructions for the GitHub web UI when `gh` isn't installed/authenticated.
+Builds locally (residential IPs aren't gated the way some hosted CI runners are), commits the refreshed caches, pushes, and dispatches the deploy. Falls back to printed manual instructions when `gh` isn't installed or authenticated.
 
-The script reads `/status.json`, which sits under your configured `deployment.base`. Pass a URL explicitly to override auto-detection:
+## FAQ
 
-```bash
-npm run status -- https://yoursite.example/projects
-```
+<details>
+<summary><strong>What if I don't have projects on a particular platform?</strong></summary>
 
-## Adding a new connector
+Leave it empty. Connectors with no configured input return nothing and just don't contribute to the dashboard — no errors, no broken UI. A platform with no projects gets no chip, no badge, no source filter entry.
+</details>
 
-See **[docs/connectors.md](docs/connectors.md)** for the connector manifest pattern, folder layout, brand-mark setup, URL extractors, mirror relationships, and per-connector config. Connectors are auto-discovered — adding one is a single new folder under `src/connectors/`.
+<details>
+<summary><strong>Can I add my own data source?</strong></summary>
 
-## Adding a manual entry
+Yes. Create a new folder under `src/connectors/<your-key>/` with an `index.ts` that `export default defineConnector(…)`. The registry auto-discovers it at build time — no central list to update. See [`docs/connectors.md`](docs/connectors.md) for the manifest pattern.
+</details>
 
-See **[docs/skills/add-manual-entry.md](docs/skills/add-manual-entry.md)** for the two shapes of manual entry the config accepts — a `ManualProject` for projects no connector covers (closed-source / retired / not-on-any-platform) and a `ManualOrigin` for authoritative overrides of scraped numbers.
+<details>
+<summary><strong>Why is my deploy showing partial data?</strong></summary>
 
-The file lives under [`docs/skills/`](docs/skills/) — a tool-agnostic home for short, action-oriented walkthroughs an AI assistant (Claude, Cursor, Cline, GitHub Copilot Chat, …) or a human contributor can follow. Each skill has YAML frontmatter for machine readability and a markdown body for the actual steps.
+Some sources (chrome-stats.com, AppBrain) sit behind Cloudflare and gate datacenter IPs (which includes GitHub Actions runners). Run `npm run status` from anywhere to diagnose. If it reports partial coverage, run `npm run seed` from your own machine — residential IPs pass cleanly, the populated cache gets committed, and the next deploy serves the fresh data.
+</details>
 
-## Build-time media cache
+<details>
+<summary><strong>How do I add a project I've sold or that's been retired?</strong></summary>
 
-Every image and MP4 video a connector references is downloaded into `public/_cache/<connector>/<hash>.<ext>` at build time, and the dashboard rewrites Project / ProfileFact URLs to those local copies. The raw scrape under `generated/.cache/<connector>/data.json` keeps the ORIGINAL upstream URLs so the snapshot stays diagnosable. The CI cron (`.github/workflows/deploy.yml`) commits both `generated/` and `public/_cache/` back to the repo so subsequent builds are fast and the deployed site survives upstream link rot.
+Use a manual entry in `projects.config.local.ts`. For retired projects, you can point the entry at a Wayback snapshot of the original listing — see [`docs/skills/add-manual-entry.md`](docs/skills/add-manual-entry.md). The dashboard preserves historical numbers (peak users, lifetime downloads, ratings) and surfaces them in the Retired filter with a clock+user icon for the past-users badge.
+</details>
 
-**Config knob — `media.cache` in `projects.config.ts`** (default: `true`)
+<details>
+<summary><strong>Does it work with a custom domain?</strong></summary>
 
-Set `media: { cache: false }` to disable the cache entirely. Connectors will emit upstream URLs and the dashboard will serve them directly. Faster builds and no local bytes get committed, but every page render hits the upstream CDNs and the site breaks if any upstream URL goes away. Useful when:
+Yes. Set `deployment.site` to your custom domain and `deployment.base` to your sub-path (or `/`). The base carries through every internal link and canonical tag, so you can also proxy GitHub Pages from a sub-path on an existing site (e.g. `https://yourdomain.com/projects/`).
+</details>
 
-- the catalogue is large enough that the cache would noticeably bloat the repo,
-- the CI runner can't reach the upstream CDNs (private network, etc.),
-- or you'd rather rely on browser-side caching only.
+<details>
+<summary><strong>Can I use this commercially?</strong></summary>
 
-See **[docs/skills/cache-media.md](docs/skills/cache-media.md)** for the cache layout, the `url-map.json` shape, and patterns for extending the cache (e.g. transcoding YouTube trailers to local MP4 via `yt-dlp` and pointing the map at the result).
+No, not under the bundled license. PolyForm Noncommercial 1.0.0 covers personal projects, learning, and evaluation — anything noncommercial. Commercial use (selling, hosted services, paid products, for-profit internal tooling) requires a separate license. [Open an issue](https://github.com/arikw) to discuss.
+</details>
 
-## Advanced: higher GitHub API rate limit
+<details>
+<summary><strong>What's the difference between <code>projects.config.ts</code> and <code>projects.config.local.ts</code>?</strong></summary>
 
-Optional. The workflow uses the auto-injected `GITHUB_TOKEN` by default, which gives you 1000 requests/hour — enough for typical accounts (one paged request per build).
+`projects.config.ts` ships the committed defaults — what every cloner sees. `projects.config.local.ts` shallow-merges your private overrides on top of it at build time (your real handles, manual entries, featured pins, language preference). The local file is excluded from your clone via `.git/info/exclude` so it stays untracked without polluting the committed `.gitignore`.
+</details>
 
-If you have a very large account or hit rate limits, create a personal access token with `public_repo` read access and add it as a repo secret named **`GH_API_TOKEN`**. The workflow prefers it over the auto-injected token when present (bumps the limit to 5000 req/hr).
+## AI-friendly by design
+
+The [`docs/skills/`](docs/skills/) folder ships short, agent-readable walkthroughs (each with YAML frontmatter) — a prompt like *"add my new Chrome extension as a manual entry"* drops the assistant straight into the right file.
+
+## Docs
+
+- [`docs/connectors.md`](docs/connectors.md) — adding a new connector
+- [`docs/skills/add-manual-entry.md`](docs/skills/add-manual-entry.md) — manual entry shapes (`ManualProject`, `ManualOrigin`)
+- [`docs/skills/cache-media.md`](docs/skills/cache-media.md) — build-time media cache, URL map shape, YouTube→MP4 transcoding
+
+<details>
+<summary><strong>Architecture</strong></summary>
+
+[Astro 6](https://astro.build/) static site generator. Connectors live in `src/connectors/<key>/index.ts`, each `export default defineConnector(…)`. Auto-discovered by the registry at build time — no central list to update. Connectors fetch in parallel, normalise into `ConnectorResult`s, then `src/lib/build-projects.ts` merges + dedupes + reconciles them into final `Project`s (origin-wins → freshest-asOf → greatest-magnitude). Render is pure SSR; the only client-side JS is filter wiring + the "since last visit" diff layer (localStorage-backed, no backend).
+</details>
+
+<details>
+<summary><strong>Higher GitHub API rate limit (optional)</strong></summary>
+
+The workflow uses the auto-injected `GITHUB_TOKEN` by default — 1,000 requests/hour, enough for typical accounts. If you have a large account or hit rate limits, create a personal access token with `public_repo` read access and add it as a repo secret named `GH_API_TOKEN`. The workflow prefers it over the auto-injected token when present (bumps to 5,000 req/hr).
+</details>
 
 ## Commands
 
 ```bash
-npm run dev               # local dev server
+npm run dev               # local dev server → http://localhost:4321/
 npm run build             # → dist/  +  generated/snapshot.json
 npm run preview           # serve dist/ locally
+npm run init              # scaffold projects.config.local.ts from your git remote
+npm run status            # health-check the deployed dashboard
+npm run seed              # local-scrape → commit caches → push → dispatch deploy
 ```
+
+## Credits
+
+Built with [Astro](https://astro.build/). Stat icons are Material Icons. Brand marks (Chrome / npm / Docker / GitHub / GNOME / Stack Overflow / Play / AppBrain) are the trademarks of their respective owners.
 
 ## License
 
-Source available under the [PolyForm Noncommercial License 1.0.0](./LICENSE).
-
-**Free** for personal projects, learning, evaluation, and any other noncommercial purpose. Clone it, modify it, deploy your own projects dashboard — go for it.
-
-**Commercial use** requires a separate commercial license. That includes (non-exhaustively):
-
-- Selling the software or a derivative product
-- Offering it as a hosted / managed service to third parties
-- Building paid products on top of it
-- Using it for internal tooling at a for-profit company
-
-Open an issue or [reach out](https://github.com/arikw) to discuss a commercial license.
-
-Forks remain bound by the same license — keep the `LICENSE` file and the `Required Notice: Copyright Arik W.` line intact. The "Built with rx-dev-dashboard" footer attribution in `src/pages/index.astro` is good practice but not strictly required by the license itself.
-
-## Layout
-
-```
-.
-├── astro.config.mjs                reads deployment.site/base from projects.config.ts
-├── projects.config.ts              single source of truth (config-driven)
-├── generated/snapshot.json         persisted per-connector results (gitignored locally;
-│                                   workflow commits it back as a backup)
-├── src/
-│   ├── content.config.ts           Zod schema for optional detail pages
-│   ├── content/projects/           optional detail .mdx files (one per project slug)
-│   ├── connectors/                 github, npm, docker, chrome, manual + shared types
-│   ├── lib/                        load-config, load-projects, snapshot-store, aggregate-stats, fixtures
-│   ├── components/                 BaseHead, Hero, Stat, ProjectCard, ProjectGrid, FeaturedRow, TagFilter
-│   ├── layouts/                    BaseLayout
-│   ├── pages/
-│   │   ├── index.astro             the showcase
-│   │   └── data.json.ts            machine-readable snapshot + project list
-│   ├── styles/                     global CSS
-│   ├── types/                      Project, ProjectsConfig types
-│   └── utils/
-├── tests/fixtures/                 connector fixtures for offline builds
-└── .github/workflows/deploy.yml    build + Pages deploy with snapshot cache and commit-back
-```
+[PolyForm Noncommercial 1.0.0](./LICENSE) — free for personal projects, learning, evaluation, and any other noncommercial purpose. Commercial use (selling, hosted services, paid products, for-profit internal tooling) requires a separate license — [open an issue](https://github.com/arikw) to discuss. Forks must keep the `LICENSE` file and the `Required Notice: Copyright Arik W.` line intact.
