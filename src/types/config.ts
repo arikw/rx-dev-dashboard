@@ -220,13 +220,26 @@ export type ProjectsConfig = {
      *   - an absolute `http(s)://…` URL or a `/`-prefixed path under `public/`:
      *     use it verbatim. */
     favicon?: false | string;
+    /** Favicon shape:
+     *   - `'rounded'`: force a circular mask onto the favicon + PWA icons.
+     *   - `'square'`: force the source verbatim (no mask).
+     *   - `'auto'` / `undefined` (default): rounded when the source is a
+     *     profile picture from a platform that renders avatars round
+     *     (GitHub, Stack Overflow, …); square otherwise.
+     *
+     *  SVG sources are emitted verbatim regardless — they're typically
+     *  designed shapes (logos), not raster avatars that benefit from a
+     *  circular crop. */
+    faviconShape?: 'rounded' | 'square' | 'auto';
     /** PWA manifest theme_color — browser-chrome / status-bar tint when the
      *  site is installed. CSS colour string. Defaults to `'#1f1f23'`. Also
      *  surfaced as the `<meta name="theme-color">` tag. */
     themeColor?: string;
     /** PWA manifest background_color — splash-screen background shown for
-     *  the first paint after install. CSS colour string. Defaults to
-     *  `'#ffffff'`. */
+     *  the first paint after install. CSS colour string. Defaults to a
+     *  colour sampled from the corners of the favicon source (so the
+     *  splash blends with the icon edge), falling back to `'#ffffff'` when
+     *  no avatar is reachable. */
     backgroundColor?: string;
     /** PWA manifest short_name — label under the home-screen icon when
      *  installed. Falls back to `siteTitle`. Keep ≤ ~12 chars for the

@@ -102,29 +102,101 @@ function extractTitle(html: string): string | null {
   return decodeHtmlEntities(raw);
 }
 
-async function extractFavicon(html: string, baseUrl: string): Promise<string | null> {
-  // Match <link rel="<one of icon variants>" href="..."> in either attribute
-  // order. Crucially: capture href content based on its OPENING quote char
-  // (backreference) — so single quotes inside a double-quoted data: URI (and
-  // vice versa) don't terminate the capture early.
-  const REL_VALUES = '(?:shortcut\\s+)?icon|apple-touch-icon|mask-icon';
-  const relHref = new RegExp(
-    `<link[^>]*?\\brel=(["'])(?:${REL_VALUES})\\1[^>]*?\\bhref=(["'])(.*?)\\2`,
-    'is',
-  );
-  const hrefRel = new RegExp(
-    `<link[^>]*?\\bhref=(["'])(.*?)\\1[^>]*?\\brel=(["'])(?:${REL_VALUES})\\3`,
-    'is',
-  );
-  const href = html.match(relHref)?.[3] ?? html.match(hrefRel)?.[2];
-  if (href) {
-    try {
-      const resolved = new URL(href, baseUrl).toString();
-      if (resolved.startsWith('data:') || (await isReachable(resolved))) return resolved;
-    } catch {
-      /* fallthrough */
+type FaviconCandidate = {
+  href: string;
+  rel: string;
+  /** Largest dimension from the `sizes` attribute, or an inferred value
+   *  when `sizes` is missing. SVG sources resolve to Infinity (vector
+   *  scales any size). */
+  size: number;
+};
+
+/** Walk every `<link>` tag in the head, keep the ones with an icon-shaped
+ *  `rel`, and return them as ranked candidates. */
+function collectFaviconLinks(html: string): { href: string; rel: string; sizes: string | null }[] {
+  const out: { href: string; rel: string; sizes: string | null }[] = [];
+  const LINK_RE = /<link\b([^>]*?)\/?>/gis;
+  const ATTR_RE = /\b([a-z-]+)=(["'])((?:(?!\2).)*)\2/gi;
+  let lm: RegExpExecArray | null;
+  while ((lm = LINK_RE.exec(html))) {
+    const attrs: Record<string, string> = {};
+    let am: RegExpExecArray | null;
+    const blob = lm[1];
+    ATTR_RE.lastIndex = 0;
+    while ((am = ATTR_RE.exec(blob))) {
+      attrs[am[1].toLowerCase()] = am[3];
     }
+    const rel = (attrs.rel ?? '').toLowerCase().trim();
+    if (!rel || !attrs.href) continue;
+    // Accept anything with an icon-shaped rel — "icon", "shortcut icon",
+    // "apple-touch-icon", "apple-touch-icon-precomposed", "mask-icon",
+    // "fluid-icon", "fluid icon".
+    if (!/(?:^|\s)(?:shortcut\s+)?icon(?:\s|$)|apple-touch-icon|mask-icon|fluid-icon/.test(rel)) continue;
+    out.push({ href: attrs.href, rel, sizes: attrs.sizes ?? null });
   }
+  return out;
+}
+
+/** Parse the `sizes` attribute (e.g. `"180x180"`, `"32x32 64x64"`, `"any"`)
+ *  into the largest dimension expressed. `any` is treated as Infinity
+ *  (vector / source picks the size). */
+function parseSizes(sizes: string | null): number {
+  if (!sizes) return 0;
+  const lower = sizes.trim().toLowerCase();
+  if (lower === 'any') return Infinity;
+  let max = 0;
+  for (const tok of lower.split(/\s+/)) {
+    const m = tok.match(/^(\d+)x(\d+)$/);
+    if (m) max = Math.max(max, Math.max(Number(m[1]), Number(m[2])));
+  }
+  return max;
+}
+
+/** Inferred size when `sizes` is absent. Based on rel type + URL hints. */
+function inferSize(rel: string, href: string): number {
+  // SVG / mask-icon: vector, any-size.
+  if (rel.includes('mask-icon')) return Infinity;
+  if (/\.svg(?:[?#]|$)/i.test(href)) return Infinity;
+  // apple-touch-icon defaults to 180x180 per Apple's convention.
+  if (rel.includes('apple-touch-icon')) return 180;
+  // Some sites embed the size in the URL: favicon-32x32.png, icon-512.png.
+  const urlSize = href.match(/[-_/](\d{2,4})(?:x\d{2,4})?\.(?:png|ico|webp|jpe?g)\b/i);
+  if (urlSize) return Number(urlSize[1]);
+  // Plain `icon` / `shortcut icon` with no other hint — assume small
+  // tab-icon (16x16). Site explicitly serving a high-res icon will have
+  // a `sizes` attribute.
+  return 16;
+}
+
+async function extractFavicon(html: string, baseUrl: string): Promise<string | null> {
+  const links = collectFaviconLinks(html);
+  const candidates: FaviconCandidate[] = [];
+  for (const l of links) {
+    let resolved: string;
+    try {
+      resolved = new URL(l.href, baseUrl).toString();
+    } catch {
+      continue;
+    }
+    const declared = parseSizes(l.sizes);
+    const size = declared > 0 ? declared : inferSize(l.rel, resolved);
+    candidates.push({ href: resolved, rel: l.rel, size });
+  }
+  // Rank: largest size first; ties broken by rel preference (mask-icon /
+  // SVG > apple-touch > generic icon — vector formats and Apple's 180px
+  // touch icon are usually higher-quality than the 16x16 favicon.ico).
+  const relRank = (rel: string): number => {
+    if (rel.includes('mask-icon')) return 4;
+    if (rel.includes('apple-touch-icon')) return 3;
+    if (rel.includes('shortcut')) return 1;
+    return 2;
+  };
+  candidates.sort((a, b) => b.size - a.size || relRank(b.rel) - relRank(a.rel));
+
+  for (const c of candidates) {
+    if (c.href.startsWith('data:') || (await isReachable(c.href))) return c.href;
+  }
+  // Fallback to /favicon.ico convention.
   try {
     const fallback = new URL('favicon.ico', baseUrl).toString();
     if (await isReachable(fallback)) return fallback;
