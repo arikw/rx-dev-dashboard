@@ -39,7 +39,7 @@ const abs = (path?: string | null): string | undefined =>
 async function fetchOne(pk: number): Promise<EgoExtension | null> {
   const url = `https://extensions.gnome.org/extension-info/?pk=${encodeURIComponent(String(pk))}`;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'rx-dev-dashboard' } });
+    const res = await fetch(url, { headers: { 'User-Agent': 'live-dev-portfolio' } });
     if (!res.ok) return null;
     return (await res.json()) as EgoExtension;
   } catch {

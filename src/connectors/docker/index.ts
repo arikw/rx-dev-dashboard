@@ -35,7 +35,7 @@ async function fetchAllDockerRepos(user: string): Promise<DockerRepo[]> {
   const all: DockerRepo[] = [];
   let url: string | null = `https://hub.docker.com/v2/repositories/${encodeURIComponent(user)}/?page_size=100`;
   while (url) {
-    const res = await fetch(url, { headers: { 'User-Agent': 'rx-dev-dashboard' } });
+    const res = await fetch(url, { headers: { 'User-Agent': 'live-dev-portfolio' } });
     if (!res.ok) throw new Error(`Docker Hub ${res.status}`);
     const data = (await res.json()) as DockerListResponse;
     all.push(...(data.results ?? []).filter((r) => !r.is_private));

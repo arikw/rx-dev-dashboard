@@ -41,7 +41,7 @@ async function fetchSOUser(userId: string): Promise<SOUser | null> {
   // user fetched at most once a week.
   const url = `https://api.stackexchange.com/2.3/users/${encodeURIComponent(userId)}?site=stackoverflow`;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'rx-dev-dashboard/0.1' } });
+    const res = await fetch(url, { headers: { 'User-Agent': 'live-dev-portfolio/0.1' } });
     if (!res.ok) return null;
     const data = (await res.json()) as { items?: SOUser[] };
     const u = data.items?.[0];

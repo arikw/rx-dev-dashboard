@@ -59,7 +59,7 @@ async function fetchHtml(
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) rx-dev-dashboard/0.1',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) live-dev-portfolio/0.1',
         Accept: 'text/html,application/xhtml+xml',
       },
       redirect: 'follow',

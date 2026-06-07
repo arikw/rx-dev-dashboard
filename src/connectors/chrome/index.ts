@@ -42,7 +42,7 @@ async function scrapeOne(id: string): Promise<ChromeExtension | null> {
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) rx-dev-dashboard/0.1',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) live-dev-portfolio/0.1',
         'Accept-Language': 'en-US,en;q=0.9',
       },
     });

@@ -27,12 +27,12 @@ env:
 
 jobs:
   build:
-    # This workflow is a no-op on the canonical repo (arikw/rx-dev-dashboard)
+    # This workflow is a no-op on the canonical repo (arikw/live-dev-portfolio)
     # — the canonical site is deployed via a different pipeline and we don't
     # want the daily cron rebuilding stats / committing snapshots there.
     # Forks (any other `<owner>/<name>`) WILL run the workflow normally,
     # which is the path cloners follow to deploy their own dashboard.
-    if: github.repository != 'arikw/rx-dev-dashboard'
+    if: github.repository != 'arikw/live-dev-portfolio'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
   deploy:
     needs: build
     # Mirror the build job's repo guard — skip on the canonical repo.
-    if: github.repository != 'arikw/rx-dev-dashboard'
+    if: github.repository != 'arikw/live-dev-portfolio'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

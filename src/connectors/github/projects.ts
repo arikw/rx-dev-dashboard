@@ -51,7 +51,7 @@ type GithubRepo = {
 async function fetchPage(user: string, page: number, token?: string): Promise<GithubRepo[]> {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github.v3+json',
-    'User-Agent': 'rx-dev-dashboard',
+    'User-Agent': 'live-dev-portfolio',
     'X-GitHub-Api-Version': '2022-11-28',
   };
   if (token) headers.Authorization = `Bearer ${token}`;

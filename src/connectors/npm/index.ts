@@ -36,7 +36,7 @@ type NpmSearchResult = {
   }>;
 };
 
-const UA = { 'User-Agent': 'rx-dev-dashboard' };
+const UA = { 'User-Agent': 'live-dev-portfolio' };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 class NotFoundError extends Error {}
