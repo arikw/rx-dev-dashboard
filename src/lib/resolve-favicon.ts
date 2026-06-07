@@ -102,11 +102,13 @@ function loadSource(sourceUrl: string): { buf: Buffer; hash: string; mtime: numb
   return { buf, hash, mtime: statSync(disk).mtimeMs };
 }
 
-// Safe-zone percentage for rounded icons. W3C maskable-icon recommendation
-// is 80% (10% padding on each side); Apple-touch and Material both sit in
-// the 75–85% range. 80% lets a face-centered avatar survive the circular
-// crop without losing the chin/forehead.
-const ROUNDED_SAFE_ZONE = 0.8;
+// Diameter of the visible circle as a fraction of the canvas, for rounded
+// favicons. The remainder is transparent padding — leaves breathing room
+// so the circle isn't clipped at the icon's edge by browser tab styling
+// and survives anti-aliasing at small render sizes. 85% is a balance:
+// enough room to escape edge clipping, small enough that the avatar
+// still reads well at 16×16 in a browser tab.
+const ROUNDED_CIRCLE_FRACTION = 0.85;
 
 /** Resize the source into a PNG of the given pixel size, optionally
  *  applying a circular mask so the result reads as a round avatar.
@@ -114,11 +116,11 @@ const ROUNDED_SAFE_ZONE = 0.8;
  *  than the source. Shape is encoded in the filename so square and
  *  rounded variants don't fight for the same cache slot.
  *
- *  Rounded mode pads the avatar inside an 80% safe zone — matches the
- *  W3C maskable-icon convention so the inscribed avatar doesn't get its
- *  corners cropped by the circular mask. The padding ring colour comes
- *  from the source's corner pixels, so the ring blends with what was
- *  there before the crop. */
+ *  Rounded mode produces a circle of `ROUNDED_CIRCLE_FRACTION` of the
+ *  canvas, centred on a fully transparent square. The transparent ring
+ *  prevents the circle from being clipped at the icon's edge in a
+ *  browser tab and gives the rendered favicon some visual breathing
+ *  room without padding the avatar's content. */
 async function ensureResized(
   srcBuf: Buffer,
   hash: string,
@@ -137,29 +139,29 @@ async function ensureResized(
 
   let out: Buffer;
   if (shape === 'rounded') {
-    const innerSize = Math.round(size * ROUNDED_SAFE_ZONE);
+    const innerSize = Math.round(size * ROUNDED_CIRCLE_FRACTION);
     const pad = Math.round((size - innerSize) / 2);
-    const sampled = await sampleCornerColor(srcBuf, size, 16);
-    const ringBg = sampled ?? { r: 255, g: 255, b: 255, alpha: 0 };
-    const avatarBuf = await sharp(srcBuf)
+    // Resize the avatar to the visible circle's diameter, then mask it
+    // round at that same size — the avatar fills the circle edge to
+    // edge (no inner ring), and the circle itself sits centred on a
+    // transparent canvas so the icon has padding around it.
+    const innerMask = Buffer.from(
+      `<svg width="${innerSize}" height="${innerSize}"><circle cx="${innerSize / 2}" cy="${innerSize / 2}" r="${innerSize / 2}" fill="white"/></svg>`,
+    );
+    const roundedAvatar = await sharp(srcBuf)
       .resize(innerSize, innerSize, { fit: 'cover' })
+      .composite([{ input: innerMask, blend: 'dest-in' }])
       .png()
       .toBuffer();
-    const mask = Buffer.from(
-      `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="white"/></svg>`,
-    );
     out = await sharp({
       create: {
         width: size,
         height: size,
         channels: 4,
-        background: ringBg,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
       },
     })
-      .composite([
-        { input: avatarBuf, top: pad, left: pad },
-        { input: mask, blend: 'dest-in' },
-      ])
+      .composite([{ input: roundedAvatar, top: pad, left: pad }])
       .png({ compressionLevel: 9 })
       .toBuffer();
   } else {
