@@ -7,13 +7,12 @@ import { resolveHomepageChip } from '../lib/homepage-chip';
 interface Props {
   project: Project;
   /** Position-modifier — added as a class for layout-specific styling.
-   *  - 'title'      → sits next to the title inside .card-head (current).
-   *  - 'standalone' → free-floating row (e.g. under the description).
-   *  - 'footer'     → bottom of card with a divider rule above. */
-  layout?: 'title' | 'standalone' | 'footer';
+   *  - 'footer' → bottom of card with a divider rule above (default).
+   *  - 'title'  → sits next to the title inside .card-head (legacy). */
+  layout?: 'footer' | 'title';
 }
 
-const { project: p, layout = 'title' } = Astro.props;
+const { project: p, layout = 'footer' } = Astro.props;
 
 const SOURCE_TO_GROUP: Record<string, string> = getPlatformToSourceGroup();
 const seen = new Set<string>();

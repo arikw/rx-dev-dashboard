@@ -141,8 +141,6 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
           tagList={(p.tags ?? []).join(' ')}
           contentLanguage={p.contentLanguage || 'en'}
           featuredRank={rank >= 0 ? rank : undefined}
-          yearStyle="kicker"
-          chipsLayout="footer"
         />
       );
     })}

@@ -176,10 +176,13 @@ button {
    `.site-main` gap (36-48px) gets an additive margin-top on these two
    sections so they feel like chapter breaks rather than just-another-row.
    :has() lets us target the reviews wrapper without polluting every
-   .section-group (Profile Statistics / Intro keep the standard rhythm). */
+   .section-group (Profile Statistics / Intro keep the standard rhythm).
+   Floor 56px keeps the break visible on phones — the previous 28px floor
+   shrank to a row-gap on narrow viewports because vw scales backward
+   into smaller numbers there. */
 .site-main > .section-group:has(.review-carousel),
 .site-main > .author-bio {
-  margin-top: clamp(28px, 3.5vw, 48px);
+  margin-top: clamp(56px, 5vw, 72px);
 }
 
 /* A labelled divider + the section it labels are wrapped in
@@ -1497,15 +1500,12 @@ a.card-source:hover {
   margin-top: 10px;
 }
 
-/* Source-chip layout variants. Defaults to title-row alignment; the
-   `standalone` and `footer` modifiers move the chip row outside
-   `.card-head` (free-floating between description and stats, or anchored
-   at the bottom with a divider rule above). */
-.card-sources--standalone,
+/* Source-chip layout variants. `--footer` is the production default
+   (chips anchored at the bottom of the card with a divider rule above);
+   `--title` keeps chips inside .card-head next to the title (legacy
+   layout, still selectable via the `chipsLayout` prop). */
 .card-sources--footer {
   margin: 0;
-}
-.card-sources--footer {
   /* Equidistant 12px above and below the chips. The card root's bottom
      padding gets zeroed (see below) so this row's padding-bottom is
      what holds the chips off the card edge — no longer fighting the

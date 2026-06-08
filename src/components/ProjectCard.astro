@@ -20,28 +20,19 @@ interface Props {
    *  the client-side "Featured" sort. Omit for non-featured cards. */
   featuredRank?: number;
   /** Where the year/year-range is rendered:
-   *   - 'inline'   — as a stat chip in the stats row (current behaviour).
-   *   - 'corner'   — top-right pill on top of the thumb (icon + year).
-   *   - 'footer'   — small muted line below the stats row (icon + year).
-   *   - 'divider'  — same as `footer` but with a horizontal rule above.
-   *   - 'subtitle' — small muted line under the title (icon + year).
-   *   - 'stamp'    — postage-stamp aesthetic: tilted, dashed border.
-   *   - 'timeline' — left-edge accent strip with year written vertically.
-   *   - 'hero'     — big editorial-style number above the title.
-   *   - 'kicker'   — inverse of 'hero': small year kicker, title gets the
-   *                  bold editorial treatment + accent underline.
-   *   - 'none'     — don't render the year at all (the caller supplies its
-   *                  own slot — used by the demo's "above-the-card" variant).
-   *  For retired projects with a known last-active year, all non-`inline`
-   *  modes render the range `YYYY–YYYY`. */
-  yearStyle?: 'inline' | 'corner' | 'footer' | 'divider' | 'subtitle' | 'stamp' | 'timeline' | 'hero' | 'kicker' | 'none';
+   *   - 'kicker' — small uppercase kicker line above the title; pairs with
+   *     the bold-title + accent-rule editorial treatment driven by the
+   *     `data-year-style="kicker"` selector in global.css. Default.
+   *   - 'inline' — legacy mode: year appears as a stat chip in the stats row.
+   *  For retired projects with a known last-active year, both modes render
+   *  the range `YYYY–YYYY`. */
+  yearStyle?: 'kicker' | 'inline';
   /** Where the source/platform link chips are rendered:
-   *   - 'title'      — beside the title in `.card-head` (current behaviour).
-   *   - 'after-desc' — own row, between description and stats.
-   *   - 'footer'     — bottom of the card with a divider rule above. */
-  chipsLayout?: 'title' | 'after-desc' | 'footer';
+   *   - 'footer' — bottom of the card with a divider rule above (default).
+   *   - 'title'  — legacy mode: beside the title in `.card-head`. */
+  chipsLayout?: 'footer' | 'title';
 }
-const { project: p, size = 'compact', sourceGroups = '', tagList = '', contentLanguage = 'en', featuredRank, yearStyle = 'inline', chipsLayout = 'title' } = Astro.props;
+const { project: p, size = 'compact', sourceGroups = '', tagList = '', contentLanguage = 'en', featuredRank, yearStyle = 'kicker', chipsLayout = 'footer' } = Astro.props;
 
 // Display string for the year slot. Retired projects with a known last
 // activity render as `YYYY–YYYY` (active lifespan); live projects render
@@ -151,35 +142,11 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
   data-year-style={yearStyle}
 >
   <span class="card-new-ribbon" hidden>NEW</span>
-  {yearStyle === 'corner' && yearLabel && (
-    <span class="card-year-corner" title={p.retired && lastYear && lastYear > (p.year ?? 0)
-      ? `Active ${p.year}–${lastYear}`
-      : `First released in ${p.year}`}>
-      <svg class="year-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
-      </svg>{yearLabel}
-    </span>
-  )}
-  {yearStyle === 'stamp' && yearLabel && (
-    <span class="card-year-stamp" title={p.retired && lastYear && lastYear > (p.year ?? 0)
-      ? `Active ${p.year}–${lastYear}`
-      : `First released in ${p.year}`}>{yearLabel}</span>
-  )}
-  {yearStyle === 'timeline' && yearLabel && (
-    <span class="card-year-timeline" title={p.retired && lastYear && lastYear > (p.year ?? 0)
-      ? `Active ${p.year}–${lastYear}`
-      : `First released in ${p.year}`}><span class="card-year-timeline-text">{yearLabel}</span></span>
-  )}
   <div class="card-thumb-frame">
     <ProjectThumb project={p} />
     <span class="card-updated-chip" hidden></span>
   </div>
   <header class="card-head">
-    {yearStyle === 'hero' && yearLabel && (
-      <p class="card-year-hero" aria-label={p.retired && lastYear && lastYear > (p.year ?? 0)
-        ? `Active ${p.year}–${lastYear}`
-        : `First released in ${p.year}`}>{yearLabel}</p>
-    )}
     {yearStyle === 'kicker' && yearLabel && (
       <p class="card-year-kicker" aria-label={p.retired && lastYear && lastYear > (p.year ?? 0)
         ? `Active ${p.year}–${lastYear}`
@@ -192,19 +159,10 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
     <a class="card-title" href={titleHref} rel="noopener" target="_blank">
       <h3>{p.title}</h3>
     </a>
-    {yearStyle === 'subtitle' && yearLabel && (
-      <p class="card-year-subtitle">
-        <svg class="year-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
-        </svg>{yearLabel}
-      </p>
-    )}
     {chipsLayout === 'title' && <CardSources project={p} layout="title" />}
   </header>
 
   {p.description && <p class="card-desc">{p.description}</p>}
-
-  {chipsLayout === 'after-desc' && <CardSources project={p} layout="standalone" />}
 
   {stats.length > 0 && (
     <p class="card-stats">
@@ -256,17 +214,6 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
   )}
 
   {chipsLayout === 'footer' && <CardSources project={p} layout="footer" />}
-
-  {(yearStyle === 'footer' || yearStyle === 'divider') && yearLabel && (
-    <p class={yearStyle === 'divider' ? 'card-year-footer card-year-footer--divided' : 'card-year-footer'}
-       title={p.retired && lastYear && lastYear > (p.year ?? 0)
-         ? `Active ${p.year}–${lastYear}`
-         : `First released in ${p.year}`}>
-      <svg class="year-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
-      </svg>{yearLabel}
-    </p>
-  )}
 
   {detailHref && (
     <a class="card-detail-link" href={detailHref}>Details →</a>
