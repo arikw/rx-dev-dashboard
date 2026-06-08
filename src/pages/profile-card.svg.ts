@@ -126,27 +126,32 @@ export const GET: APIRoute = async () => {
 
     <!-- Stats row. Each cell pairs the big number with a small icon
          (from the same set the hero on /projects/ uses) + label text
-         shifted right by the icon width so they read as one line. -->
+         shifted right by the icon width so they read as one line.
+         Labels are deliberately single-word where possible — the hero
+         on /projects/ has 250px per tile and can carry the longer
+         "Stars & likes" / "Downloads & pulls" phrasing, but at 145px
+         per column on this card those overflow into the neighbour
+         visually. Compact labels keep each pair contained. -->
     <g transform="translate(30 144)">
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[0]}" y="0">${formatStat(stats.starsAndLikes)}+</text>
         ${icon('star', cellX[0], 9)}
-        <text class="sans label muted" x="${cellX[0] + 14}" y="18">Stars &amp; likes</text>
+        <text class="sans label muted" x="${cellX[0] + 14}" y="18">Stars</text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[1]}" y="0">${formatStat(stats.downloadsAndPulls)}+</text>
         ${icon('download', cellX[1], 9)}
-        <text class="sans label muted" x="${cellX[1] + 14}" y="18">Downloads &amp; pulls</text>
+        <text class="sans label muted" x="${cellX[1] + 14}" y="18">Downloads</text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[2]}" y="0">${formatStat(stats.activeUsers)}+</text>
         ${icon('users', cellX[2], 9)}
-        <text class="sans label muted" x="${cellX[2] + 14}" y="18">Active users</text>
+        <text class="sans label muted" x="${cellX[2] + 14}" y="18">Users</text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[3]}" y="0">${stats.totalProjects}</text>
         ${icon('projects', cellX[3], 9)}
-        <text class="sans label muted" x="${cellX[3] + 14}" y="18">Projects shipped</text>
+        <text class="sans label muted" x="${cellX[3] + 14}" y="18">Projects</text>
       </g>
     </g>
 
