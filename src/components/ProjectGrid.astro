@@ -141,6 +141,8 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
           tagList={(p.tags ?? []).join(' ')}
           contentLanguage={p.contentLanguage || 'en'}
           featuredRank={rank >= 0 ? rank : undefined}
+          yearStyle="kicker"
+          chipsLayout="footer"
         />
       );
     })}
@@ -184,17 +186,53 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
     const totalCountEl = root.querySelector<HTMLElement>('[data-tag-count-total]');
     const resetButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-filter-reset]'));
     const cards = Array.from(grid.querySelectorAll<HTMLElement>('.card'));
-    // Default Language chip pre-selected on first load. Hash param `lang=`
-    // overrides this; "" means "All". Read from a data attribute set by
-    // the Astro template so the script doesn't import config directly.
-    const defaultLanguage = root.dataset.defaultLanguage ?? '';
+    // Language defaults come in two layers — see the comments below for
+    // why each exists. Hash param `lang=` overrides both; "" means "All".
+    //   `configDefaultLanguage` — what the dashboard config says.
+    //   `environmentDefaultLanguage` — auto-relax to "All" when the
+    //       browser advertises a non-default project content-language
+    //       (e.g. Hebrew browser sees Hebrew apps by default). Used for
+    //       the writeHash() comparison: the hash only appears when the
+    //       active filter differs from the visiting browser's natural
+    //       default, so shared URLs without a hash render the same way
+    //       across visitors with the same environment.
+    //   `personalDefaultLanguage` — the user's saved preference, if any
+    //       (localStorage). Wins for the initial-load filter so a
+    //       returning visitor sees what they last chose. Deliberately
+    //       NOT used by writeHash(): including it would let a saved
+    //       preference suppress hash params and break URL sharing
+    //       (the recipient's localStorage isn't ours).
+    const configDefaultLanguage = root.dataset.defaultLanguage ?? '';
+    const LANG_STORAGE_KEY = 'rxp:lang-filter';
+    const projectLanguages = new Set(
+      Array.from(root.querySelectorAll<HTMLButtonElement>('[data-filter-language]'))
+        .map((c) => c.dataset.filterLanguage ?? '')
+        .filter(Boolean),
+    );
+    function detectEnvironmentDefault(): string {
+      // Look for any preferred browser language whose base code matches a
+      // project content-language and ISN'T the config default. If found,
+      // relax the default to "" (All). Otherwise stick with the config.
+      const prefs = Array.isArray(navigator.languages) ? navigator.languages : [navigator.language];
+      for (const pref of prefs) {
+        const base = (pref || '').split('-')[0].toLowerCase();
+        if (!base || base === configDefaultLanguage) continue;
+        if (projectLanguages.has(base)) return '';
+      }
+      return configDefaultLanguage;
+    }
+    const environmentDefaultLanguage = detectEnvironmentDefault();
+    const storedLang = (() => {
+      try { return localStorage.getItem(LANG_STORAGE_KEY); } catch { return null; }
+    })();
+    const personalDefaultLanguage = storedLang !== null ? storedLang : environmentDefaultLanguage;
 
     type Sort = 'featured' | 'popularity' | 'year';
     type Status = '' | 'live' | 'retired' | 'updated';
     let activeSource = '';
     let activeSort: Sort = 'featured';
     let activeTag = '';
-    let activeLanguage = defaultLanguage;
+    let activeLanguage = personalDefaultLanguage;
     let activeStatus: Status = '';
     let shown = pageSize;
     let overflowExpanded = false;
@@ -356,7 +394,7 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
         !activeSource &&
         activeSort === 'featured' &&
         !activeTag &&
-        activeLanguage === defaultLanguage &&
+        activeLanguage === personalDefaultLanguage &&
         !activeStatus
       );
     }
@@ -383,7 +421,7 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
       activeSource = '';
       activeSort = 'featured';
       activeTag = '';
-      activeLanguage = defaultLanguage;
+      activeLanguage = personalDefaultLanguage;
       activeStatus = '';
       shown = pageSize;
       sourceChips.forEach((c) => {
@@ -453,12 +491,18 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
       applyFilter();
     }
 
-    function setLanguage(lang: string) {
+    function setLanguage(lang: string, persist = true) {
       activeLanguage = lang;
       shown = pageSize;
       languageChips.forEach((c) => {
         c.setAttribute('aria-pressed', String((c.dataset.filterLanguage ?? '') === lang));
       });
+      if (persist) {
+        // Save explicit chip clicks so the next visit (without a hash)
+        // restores the choice. Programmatic resets pass persist=false to
+        // avoid burning the user's preference on a Reset Filters click.
+        try { localStorage.setItem(LANG_STORAGE_KEY, lang); } catch { /* private mode etc. */ }
+      }
       writeHash();
       applyFilter();
     }
@@ -498,9 +542,11 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
     languageChips.forEach((c) => {
       c.addEventListener('click', () => {
         const val = c.dataset.filterLanguage ?? '';
-        // Toggle: click an already-active chip → revert to the
-        // configured default. Click a different chip → switch to it.
-        setLanguage(val === activeLanguage ? defaultLanguage : val);
+        // Toggle: click an already-active chip → revert to the personal
+        // default (saved preference, browser-detected, then config).
+        // Click a different chip → switch to it. Either way, persist
+        // the resulting selection.
+        setLanguage(val === activeLanguage ? personalDefaultLanguage : val);
       });
     });
     statusChips.forEach((c) => {
@@ -555,13 +601,15 @@ const statusChips: { key: 'live' | 'retired'; label: string; count: number }[] =
       if (activeSource) params.set('source', activeSource);
       if (activeSort !== 'featured') params.set('sort', activeSort);
       if (activeTag) params.set('tag', activeTag);
-      // Lang is omitted when the current value equals the configured
-      // default — that way the canonical "as configured" URL stays
-      // clean even when defaultLanguage is set to (e.g.) 'en'.
-      // The empty "all" sentinel is encoded as the explicit string
-      // 'all' in the URL so visitors don't end up with a bare `lang=`
-      // that reads as "no value".
-      if (activeLanguage !== defaultLanguage) {
+      // Lang hash is omitted when the active filter matches the
+      // ENVIRONMENT default (config-default, relaxed to "All" when the
+      // browser advertises a non-default content-language). LocalStorage
+      // is deliberately excluded from this check — including it would
+      // let a saved preference suppress the hash, making URLs unshareable
+      // (recipients wouldn't see the same view without their own LS
+      // matching). The "all" sentinel is encoded explicitly so visitors
+      // don't end up with a bare `lang=` that reads as "no value".
+      if (activeLanguage !== environmentDefaultLanguage) {
         params.set('lang', activeLanguage === '' ? 'all' : activeLanguage);
       }
       if (activeStatus) params.set('status', activeStatus);

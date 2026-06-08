@@ -1,12 +1,10 @@
 ---
 import type { Project } from '../types/project';
 import { formatStat } from '../lib/aggregate-stats';
-import { sourceLabel } from '../lib/source-label';
-import { getPlatformToSourceGroup } from '../connectors/_registry';
 import { featuredScore } from '../lib/featured-score';
-import { resolveHomepageChip } from '../lib/homepage-chip';
 import { resolveTitleHref } from '../lib/title-href';
 import ProjectThumb from './ProjectThumb.astro';
+import CardSources from './CardSources.astro';
 
 interface Props {
   project: Project;
@@ -21,8 +19,49 @@ interface Props {
   /** 0-based index in config.featured when this project is pinned. Drives
    *  the client-side "Featured" sort. Omit for non-featured cards. */
   featuredRank?: number;
+  /** Where the year/year-range is rendered:
+   *   - 'inline'   — as a stat chip in the stats row (current behaviour).
+   *   - 'corner'   — top-right pill on top of the thumb (icon + year).
+   *   - 'footer'   — small muted line below the stats row (icon + year).
+   *   - 'divider'  — same as `footer` but with a horizontal rule above.
+   *   - 'subtitle' — small muted line under the title (icon + year).
+   *   - 'stamp'    — postage-stamp aesthetic: tilted, dashed border.
+   *   - 'timeline' — left-edge accent strip with year written vertically.
+   *   - 'hero'     — big editorial-style number above the title.
+   *   - 'kicker'   — inverse of 'hero': small year kicker, title gets the
+   *                  bold editorial treatment + accent underline.
+   *   - 'none'     — don't render the year at all (the caller supplies its
+   *                  own slot — used by the demo's "above-the-card" variant).
+   *  For retired projects with a known last-active year, all non-`inline`
+   *  modes render the range `YYYY–YYYY`. */
+  yearStyle?: 'inline' | 'corner' | 'footer' | 'divider' | 'subtitle' | 'stamp' | 'timeline' | 'hero' | 'kicker' | 'none';
+  /** Where the source/platform link chips are rendered:
+   *   - 'title'      — beside the title in `.card-head` (current behaviour).
+   *   - 'after-desc' — own row, between description and stats.
+   *   - 'footer'     — bottom of the card with a divider rule above. */
+  chipsLayout?: 'title' | 'after-desc' | 'footer';
 }
-const { project: p, size = 'compact', sourceGroups = '', tagList = '', contentLanguage = 'en', featuredRank } = Astro.props;
+const { project: p, size = 'compact', sourceGroups = '', tagList = '', contentLanguage = 'en', featuredRank, yearStyle = 'inline', chipsLayout = 'title' } = Astro.props;
+
+// Display string for the year slot. Retired projects with a known last
+// activity render as `YYYY–YYYY` (active lifespan); live projects render
+// just the first-released year (the "most recent" date isn't meaningful
+// when the project is still moving).
+//
+// Source precedence for the end-year: an explicit `retiredAt` (set on
+// manual entries with a known sunset date) wins, falling back to
+// `updatedAt` (computed from mirror `asOf` timestamps).
+const lastYearSource = p.retiredAt ?? p.updatedAt;
+const lastYear = lastYearSource ? new Date(lastYearSource).getUTCFullYear() : undefined;
+// Retired projects always render the range when a last-seen year is known
+// — even when start == end (e.g. a Chrome extension that lived only a few
+// weeks in 2017 shows `2017–2017`). The visible duplication is the point:
+// it signals retirement at a glance without needing a separate badge.
+const yearLabel = !p.year ? null : (
+  p.retired && lastYear
+    ? `${p.year}–${lastYear}`
+    : String(p.year)
+);
 const base = import.meta.env.BASE_URL;
 
 // Popularity signal for client-side "sort by popularity" — raw,
@@ -86,37 +125,13 @@ if (st.rating)
       : `${st.rating.average.toFixed(1)}★`,
     title: st.rating.count ? 'Store rating (number of ratings)' : 'Store rating',
   });
-if (p.year)
-  stats.push({ text: String(p.year), title: `First released in ${p.year}`, icon: 'calendar' });
+if (p.year && yearStyle === 'inline')
+  stats.push({ text: yearLabel ?? String(p.year), title: p.retired && lastYear && lastYear > p.year
+    ? `Active ${p.year}–${lastYear}`
+    : `First released in ${p.year}`, icon: 'calendar' });
 
-// Friendly chip labels, deduped — e.g. a google-play + apkpure card shows one
-// "Android app" chip rather than two raw platform keys. Each chip resolves
-// to a clickable URL via project.sourceUrls (origin URL preferred, mirror
-// URL as fallback when the origin is removed). Source→group map is derived
-// from the registry.
-const SOURCE_TO_GROUP: Record<string, string> = getPlatformToSourceGroup();
-const seenSourceLabels = new Set<string>();
-const sourceChips: { s: string; label: string; href?: string }[] = [];
-for (const s of p.sources) {
-  const label = sourceLabel(s);
-  if (seenSourceLabels.has(label)) continue;
-  seenSourceLabels.add(label);
-  // Registered connector → use its source-group; one-off platforms (e.g.
-  // `'firefox'` declared by a ManualProject.source) → look up their own
-  // platform key directly. buildProjects stores sourceUrls under either,
-  // so the chip becomes clickable for both cases.
-  const group = SOURCE_TO_GROUP[s] ?? s;
-  const href = p.sourceUrls?.[group];
-  sourceChips.push({ s, label, href });
-}
-
-// Surface the project's homepage as its own chip when it's a genuine
-// external site (resolveHomepageChip handles the dedup against title /
-// source-platform URLs / platform hostnames). The chip is generically
-// labelled "Website" so it reads as a short label like the platform
-// chips do; the actual URL is exposed via the link's title attribute
-// for hover verification.
-const homepageChip = resolveHomepageChip(p);
+// Chip rendering lives in CardSources.astro — see that component for
+// dedup-by-source-group, the homepage-chip resolver, and the markup.
 const titleHref = resolveTitleHref(p);
 
 const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
@@ -133,51 +148,63 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
   data-featured-score={featured}
   data-featured-rank={featuredRank ?? ''}
   data-status={p.retired ? 'retired' : 'live'}
+  data-year-style={yearStyle}
 >
   <span class="card-new-ribbon" hidden>NEW</span>
+  {yearStyle === 'corner' && yearLabel && (
+    <span class="card-year-corner" title={p.retired && lastYear && lastYear > (p.year ?? 0)
+      ? `Active ${p.year}–${lastYear}`
+      : `First released in ${p.year}`}>
+      <svg class="year-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+      </svg>{yearLabel}
+    </span>
+  )}
+  {yearStyle === 'stamp' && yearLabel && (
+    <span class="card-year-stamp" title={p.retired && lastYear && lastYear > (p.year ?? 0)
+      ? `Active ${p.year}–${lastYear}`
+      : `First released in ${p.year}`}>{yearLabel}</span>
+  )}
+  {yearStyle === 'timeline' && yearLabel && (
+    <span class="card-year-timeline" title={p.retired && lastYear && lastYear > (p.year ?? 0)
+      ? `Active ${p.year}–${lastYear}`
+      : `First released in ${p.year}`}><span class="card-year-timeline-text">{yearLabel}</span></span>
+  )}
   <div class="card-thumb-frame">
     <ProjectThumb project={p} />
     <span class="card-updated-chip" hidden></span>
   </div>
   <header class="card-head">
+    {yearStyle === 'hero' && yearLabel && (
+      <p class="card-year-hero" aria-label={p.retired && lastYear && lastYear > (p.year ?? 0)
+        ? `Active ${p.year}–${lastYear}`
+        : `First released in ${p.year}`}>{yearLabel}</p>
+    )}
+    {yearStyle === 'kicker' && yearLabel && (
+      <p class="card-year-kicker" aria-label={p.retired && lastYear && lastYear > (p.year ?? 0)
+        ? `Active ${p.year}–${lastYear}`
+        : `First released in ${p.year}`}>
+        <svg class="year-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+        </svg>{yearLabel}
+      </p>
+    )}
     <a class="card-title" href={titleHref} rel="noopener" target="_blank">
       <h3>{p.title}</h3>
     </a>
-    <span class="card-sources">
-      {sourceChips.map(({ s, label, href }) => (
-        href ? (
-          <a
-            class={`card-source card-source--${s}`}
-            href={href}
-            target="_blank"
-            rel="noopener"
-            title={href}
-          >{label} <span class="card-source-arrow" aria-hidden="true">↗</span></a>
-        ) : (
-          <span class={`card-source card-source--${s}`}>{label}</span>
-        )
-      ))}
-      {homepageChip && (
-        <a
-          class="card-source card-source--homepage"
-          href={homepageChip.href}
-          target="_blank"
-          rel="noopener"
-          title={homepageChip.href}
-        >
-          <svg class="card-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="2" y1="12" x2="22" y2="12"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-          Website
-          <span class="card-source-arrow" aria-hidden="true">↗</span>
-        </a>
-      )}
-    </span>
+    {yearStyle === 'subtitle' && yearLabel && (
+      <p class="card-year-subtitle">
+        <svg class="year-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+        </svg>{yearLabel}
+      </p>
+    )}
+    {chipsLayout === 'title' && <CardSources project={p} layout="title" />}
   </header>
 
   {p.description && <p class="card-desc">{p.description}</p>}
+
+  {chipsLayout === 'after-desc' && <CardSources project={p} layout="standalone" />}
 
   {stats.length > 0 && (
     <p class="card-stats">
@@ -225,6 +252,19 @@ const detailHref = p.hasDetail ? `${base}${p.id}/` : null;
           {s.text}
         </span>
       ))}
+    </p>
+  )}
+
+  {chipsLayout === 'footer' && <CardSources project={p} layout="footer" />}
+
+  {(yearStyle === 'footer' || yearStyle === 'divider') && yearLabel && (
+    <p class={yearStyle === 'divider' ? 'card-year-footer card-year-footer--divided' : 'card-year-footer'}
+       title={p.retired && lastYear && lastYear > (p.year ?? 0)
+         ? `Active ${p.year}–${lastYear}`
+         : `First released in ${p.year}`}>
+      <svg class="year-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+      </svg>{yearLabel}
     </p>
   )}
 

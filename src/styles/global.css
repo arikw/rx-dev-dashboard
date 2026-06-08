@@ -1311,7 +1311,7 @@ hr.section-divider {
 }
 
 .card-head {
-  padding-top: 16px;
+  padding-top: 8px;
 }
 
 .card.is-hidden {
@@ -1436,6 +1436,97 @@ a.card-source:hover {
    corner of the thumb, straddling the thumb/content boundary. */
 .card-thumb-frame {
   position: relative;
+}
+
+/* J / "editorial" card layout — kicker year + bold title + accent rule.
+   Activated when ProjectCard is rendered with yearStyle="kicker"; the
+   :has() selectors pick up the kicker child to retarget the title and
+   draw the accent rule beneath it. */
+.year-icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  opacity: 0.78;
+}
+.card-year-kicker {
+  margin: 0 0 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted, #888);
+  font-feature-settings: 'tnum';
+}
+/* Bold-title + accent-rule treatment for the J / kicker layout. Selected
+   via the data attribute set by ProjectCard from the `yearStyle` prop —
+   an earlier `:has(.card-year-kicker)` selector skipped cards whose
+   `p.year` was undefined (the kicker element doesn't render in that
+   case), leaving them with the default title style and visibly out of
+   sync with the rest of the grid. */
+.card[data-year-style="kicker"] .card-title h3 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.018em;
+  line-height: 1.18;
+}
+/* Accent rule hangs off the h3 (block child of .card-title) — placing
+   it on .card-title would make it a flex sibling to the h3 (rendered
+   to the right) instead of below. */
+.card[data-year-style="kicker"] .card-title h3::after {
+  content: '';
+  display: block;
+  width: 44px;
+  height: 2px;
+  background: var(--accent, #5a3ec8);
+  opacity: 0.8;
+  margin-top: 10px;
+}
+
+/* Source-chip layout variants. Defaults to title-row alignment; the
+   `standalone` and `footer` modifiers move the chip row outside
+   `.card-head` (free-floating between description and stats, or anchored
+   at the bottom with a divider rule above). */
+.card-sources--standalone,
+.card-sources--footer {
+  margin: 0;
+}
+.card-sources--footer {
+  /* Equidistant 12px above and below the chips. The card root's bottom
+     padding gets zeroed (see below) so this row's padding-bottom is
+     what holds the chips off the card edge — no longer fighting the
+     card's 18px bottom for vertical rhythm. */
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  /* Card root is flex-column with `gap: 10px`; margin-top: auto pulls
+     this row to the bottom so it always rests at the card floor. */
+  margin-top: auto;
+}
+/* When the chips are the bottom-of-card footer, the card root's own
+   padding-bottom would double-up the visual gap. Let the footer's
+   padding-bottom alone control that distance. */
+.card:has(.card-sources--footer) {
+  padding-bottom: 0;
+}
+
+/* Bigger tap targets on touch-width viewports — desktop chips at
+   3px/8px are ergonomic with a cursor but too short to thumb-tap.
+   Pinning border-radius to 999px keeps the pill shape even at the
+   larger height; the default 12px radius starts reading as a "rounded
+   rectangle" once the chip grows past ~24px tall. */
+@media (max-width: 720px) {
+  .card-source {
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    border-radius: 999px;
+  }
+  .card-source-icon {
+    width: 14px;
+    height: 14px;
+  }
 }
 
 .card-stats {

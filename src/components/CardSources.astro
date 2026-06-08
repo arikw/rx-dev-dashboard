@@ -1,0 +1,57 @@
+---
+import type { Project } from '../types/project';
+import { sourceLabel } from '../lib/source-label';
+import { getPlatformToSourceGroup } from '../connectors/_registry';
+import { resolveHomepageChip } from '../lib/homepage-chip';
+
+interface Props {
+  project: Project;
+  /** Position-modifier — added as a class for layout-specific styling.
+   *  - 'title'      → sits next to the title inside .card-head (current).
+   *  - 'standalone' → free-floating row (e.g. under the description).
+   *  - 'footer'     → bottom of card with a divider rule above. */
+  layout?: 'title' | 'standalone' | 'footer';
+}
+
+const { project: p, layout = 'title' } = Astro.props;
+
+const SOURCE_TO_GROUP: Record<string, string> = getPlatformToSourceGroup();
+const seen = new Set<string>();
+const chips: { s: string; label: string; href?: string }[] = [];
+for (const s of p.sources) {
+  const label = sourceLabel(s);
+  if (seen.has(label)) continue;
+  seen.add(label);
+  const group = SOURCE_TO_GROUP[s] ?? s;
+  const href = p.sourceUrls?.[group];
+  chips.push({ s, label, href });
+}
+const homepageChip = resolveHomepageChip(p);
+
+if (chips.length === 0 && !homepageChip) {
+  // Nothing to render — caller checks for {component && …} pattern.
+}
+---
+
+<span class={`card-sources card-sources--${layout}`}>
+  {chips.map(({ s, label, href }) => (
+    href ? (
+      <a class={`card-source card-source--${s}`} href={href} target="_blank" rel="noopener" title={href}>
+        {label} <span class="card-source-arrow" aria-hidden="true">↗</span>
+      </a>
+    ) : (
+      <span class={`card-source card-source--${s}`}>{label}</span>
+    )
+  ))}
+  {homepageChip && (
+    <a class="card-source card-source--homepage" href={homepageChip.href} target="_blank" rel="noopener" title={homepageChip.href}>
+      <svg class="card-source-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+      Website
+      <span class="card-source-arrow" aria-hidden="true">↗</span>
+    </a>
+  )}
+</span>
