@@ -145,22 +145,22 @@ export const GET: APIRoute = async () => {
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[0]}" y="0">${formatStat(stats.starsAndLikes)}+</text>
         ${icon('star', cellX[0], 9)}
-        <text class="sans label muted" x="${cellX[0] + 14}" y="18">Stars<tspan x="${cellX[0]}" dy="12">&amp; likes</tspan></text>
+        <text class="sans label muted" x="${cellX[0] + 14}" y="18">Stars<tspan x="${cellX[0] + 14}" dy="12">&amp; likes</tspan></text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[1]}" y="0">${formatStat(stats.downloadsAndPulls)}+</text>
         ${icon('download', cellX[1], 9)}
-        <text class="sans label muted" x="${cellX[1] + 14}" y="18">Downloads<tspan x="${cellX[1]}" dy="12">&amp; pulls</tspan></text>
+        <text class="sans label muted" x="${cellX[1] + 14}" y="18">Downloads<tspan x="${cellX[1] + 14}" dy="12">&amp; pulls</tspan></text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[2]}" y="0">${formatStat(stats.activeUsers)}+</text>
         ${icon('users', cellX[2], 9)}
-        <text class="sans label muted" x="${cellX[2] + 14}" y="18">Active<tspan x="${cellX[2]}" dy="12">users</tspan></text>
+        <text class="sans label muted" x="${cellX[2] + 14}" y="18">Active<tspan x="${cellX[2] + 14}" dy="12">users</tspan></text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[3]}" y="0">${stats.totalProjects}</text>
         ${icon('projects', cellX[3], 9)}
-        <text class="sans label muted" x="${cellX[3] + 14}" y="18">Projects<tspan x="${cellX[3]}" dy="12">shipped</tspan></text>
+        <text class="sans label muted" x="${cellX[3] + 14}" y="18">Projects<tspan x="${cellX[3] + 14}" dy="12">shipped</tspan></text>
       </g>
     </g>
 
