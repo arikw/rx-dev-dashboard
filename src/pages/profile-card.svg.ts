@@ -37,6 +37,9 @@ export const GET: APIRoute = async () => {
   const userName = config.user.name || 'Arik W.';
   const userHandle = config.user.github || 'arikw';
   const dashboardUrl = `${config.deployment.site}${config.deployment.base}`;
+  // Template repo — what a viewer would clone/fork to spin up their
+  // own version of this card + dashboard.
+  const templateRepoUrl = 'https://github.com/arikw/live-dev-portfolio';
   const tagline = (config.user.bio ?? '')
     .replace(/\[([^\]]+)]\([^)]+\)/g, '$1') // strip markdown links
     .replace(/\.\s*Reach me on GitHub.*$/i, '')
@@ -113,11 +116,18 @@ export const GET: APIRoute = async () => {
   <rect class="card" x="10" y="10" width="620" height="200" rx="10" stroke-width="1"/>
 
   <g class="content">
-    <!-- Top kicker: live dot + label -->
+    <!-- Top row: live-dot kicker on the left, template attribution
+         on the right. The "make yours" link doubles as both a
+         credit and an invitation: visitors who land on the README
+         and want a card like this get a one-click path to the
+         template repo. -->
     <g transform="translate(30 32)">
       <circle class="live-dot" cx="0" cy="-2" r="3.5"/>
-      <text class="sans label muted" x="11" y="2">LIVE PROJECT STATS</text>
+      <text class="sans label muted" x="11" y="2">LIVE STATS · AGGREGATED FROM ${stats.totalProjects} PROJECTS</text>
     </g>
+    <a href="${templateRepoUrl}" target="_blank">
+      <text class="sans label muted" x="610" y="34" text-anchor="end">MAKE YOURS ↗</text>
+    </a>
 
     <!-- Title + tagline -->
     <text class="serif num fg" x="30" y="74" font-size="28">${userName}</text>
@@ -125,33 +135,32 @@ export const GET: APIRoute = async () => {
     <line class="accent-rule" x1="30" y1="106" x2="68" y2="106" stroke-width="2"/>
 
     <!-- Stats row. Each cell pairs the big number with a small icon
-         (from the same set the hero on /projects/ uses) + label text
-         shifted right by the icon width so they read as one line.
-         Labels are deliberately single-word where possible — the hero
-         on /projects/ has 250px per tile and can carry the longer
-         "Stars & likes" / "Downloads & pulls" phrasing, but at 145px
-         per column on this card those overflow into the neighbour
-         visually. Compact labels keep each pair contained. -->
+         (from the same set the hero on /projects/ uses) and a 2-line
+         label. The second line is split out with a <tspan x= dy= …>
+         which resets the X position and drops vertical baseline by
+         the line height — gives the same wording the hero uses
+         ("Stars & likes" / "Downloads & pulls") without the labels
+         crowding their neighbour at 145px column width. -->
     <g transform="translate(30 144)">
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[0]}" y="0">${formatStat(stats.starsAndLikes)}+</text>
         ${icon('star', cellX[0], 9)}
-        <text class="sans label muted" x="${cellX[0] + 14}" y="18">Stars</text>
+        <text class="sans label muted" x="${cellX[0] + 14}" y="18">Stars<tspan x="${cellX[0]}" dy="12">&amp; likes</tspan></text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[1]}" y="0">${formatStat(stats.downloadsAndPulls)}+</text>
         ${icon('download', cellX[1], 9)}
-        <text class="sans label muted" x="${cellX[1] + 14}" y="18">Downloads</text>
+        <text class="sans label muted" x="${cellX[1] + 14}" y="18">Downloads<tspan x="${cellX[1]}" dy="12">&amp; pulls</tspan></text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[2]}" y="0">${formatStat(stats.activeUsers)}+</text>
         ${icon('users', cellX[2], 9)}
-        <text class="sans label muted" x="${cellX[2] + 14}" y="18">Users</text>
+        <text class="sans label muted" x="${cellX[2] + 14}" y="18">Active<tspan x="${cellX[2]}" dy="12">users</tspan></text>
       </g>
       <g>
         <text class="serif num fg" font-size="30" x="${cellX[3]}" y="0">${stats.totalProjects}</text>
         ${icon('projects', cellX[3], 9)}
-        <text class="sans label muted" x="${cellX[3] + 14}" y="18">Projects</text>
+        <text class="sans label muted" x="${cellX[3] + 14}" y="18">Projects<tspan x="${cellX[3]}" dy="12">shipped</tspan></text>
       </g>
     </g>
 
