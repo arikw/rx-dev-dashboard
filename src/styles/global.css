@@ -2040,6 +2040,10 @@ a.filter-chip {
 
 .site-about-body p {
   margin: 0 0 1em;
+  text-align: justify;
+  /* Soften the gappiest cases — let the browser hyphenate so it
+     doesn't have to stretch single-word lines into deserts of space. */
+  hyphens: auto;
 }
 
 .site-about-body p:last-child {
