@@ -66,11 +66,11 @@ export const GET: APIRoute = async () => {
       </g>`;
   }).join('\n      ');
 
-  // Card adapts to the non-zero cell count. The +30 at the end leaves
+  // Card adapts to the non-zero cell count. The +36 at the end leaves
   // room for the two-line footer (side stats + dashboard URL on its
   // own row) with a comfortable gap above. +60 left a visibly empty
-  // band, +20 read as cramped; +30 lands in the readable middle.
-  const cardH = startY + rowH * cells.length + 30;
+  // band, +20 read as cramped; +36 lands in the readable middle.
+  const cardH = startY + rowH * cells.length + 36;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 ${cardH}" width="400" height="${cardH}" role="img" aria-label="Live project stats">
   <title>Live project stats</title>
