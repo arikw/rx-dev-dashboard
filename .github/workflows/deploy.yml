@@ -7,9 +7,11 @@ on:
     # Ignoring these paths keeps the commit-back step from re-triggering it.
     paths-ignore: ['generated/**', 'public/_cache/**']
   schedule:
-    # Daily at 08:00 UTC — refreshes source-fetched stats so the dashboard
-    # stays current without a manual push.
-    - cron: '0 8 * * *'
+    # Daily at 01:00 UTC — refreshes source-fetched stats so the dashboard
+    # stays current without a manual push. GitHub adds 50-90 minutes of
+    # scheduling jitter so the actual run lands somewhere around 01:50-02:30
+    # UTC in practice (which is still well off-peak for most timezones).
+    - cron: '0 1 * * *'
   workflow_dispatch:
 
 permissions:
