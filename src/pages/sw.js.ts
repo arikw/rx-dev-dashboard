@@ -6,10 +6,24 @@ import config from '../lib/load-config';
 // standalone-mode launch from the home screen) instead of dropping a
 // plain bookmark shortcut.
 //
-// Caching strategy is stale-while-revalidate for every same-origin GET:
-// serve the cached copy immediately, fetch a fresh one in the background,
-// and overwrite the cache entry. New builds get a new CACHE name so old
-// entries are purged on activate.
+// Caching strategy is split by request kind:
+//
+//   - Navigation requests (the HTML document) → NETWORK-FIRST. Launching
+//     the PWA always tries the network and only falls back to the cached
+//     HTML when offline. Without this, a stale-while-revalidate fetch
+//     for HTML serves yesterday's dashboard on launch and requires a
+//     manual refresh to pick up today's build — surprising for users
+//     who associate "fresh page" with "open the app."
+//   - Live data files (data.json, status.json) → NETWORK-FIRST too. The
+//     diff-stats client reads these to render "what changed since last
+//     visit." A stale copy turns the diff into a lie.
+//   - Every other same-origin GET (CSS / JS bundles / images / SVG icons
+//     / favicons / fonts) → STALE-WHILE-REVALIDATE. These are
+//     content-hashed by Astro's build, so new HTML always references
+//     filenames that aren't yet in the cache, and the SWR fetch then
+//     populates them. Cached old hashed files become orphans, but
+//     they're harmless — the CACHE name changes per build, so
+//     `activate` purges the previous generation entirely.
 //
 // Skipped entirely when `config.meta.serviceWorker === false`. The
 // registration script in BaseHead also bails in dev to avoid HMR conflicts.
@@ -58,6 +72,35 @@ self.addEventListener('fetch', (event) => {
   // do, so always go to network.
   if (url.pathname.endsWith('/manifest.webmanifest')) return;
 
+  // Network-first paths: the HTML document and live data files.
+  // \`req.mode === 'navigate'\` catches the top-level document fetch when
+  // the PWA launches; the .json checks catch the diff-stats data files
+  // that the client polls.
+  const isNavigation = req.mode === 'navigate' || req.destination === 'document';
+  const isLiveData = url.pathname.endsWith('/data.json') || url.pathname.endsWith('/status.json');
+
+  if (isNavigation || isLiveData) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      try {
+        const res = await fetch(req);
+        if (res && res.ok && res.status === 200 && res.type === 'basic') {
+          cache.put(req, res.clone()).catch(() => {});
+        }
+        return res;
+      } catch {
+        const cached = await cache.match(req);
+        if (cached) return cached;
+        return new Response('Offline and no cached copy available.', { status: 503 });
+      }
+    })());
+    return;
+  }
+
+  // Stale-while-revalidate for everything else (CSS / JS / images /
+  // fonts) — these are content-hashed by Astro's build pipeline, so
+  // serving a cached copy then refreshing in the background is the
+  // right speed/freshness tradeoff for them.
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const cached = await cache.match(req);
